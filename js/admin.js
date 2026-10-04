@@ -1,18 +1,30 @@
 (function () {
   var t = function (k) { return window.SRX.t(k); };
   var esc = function (s) { return window.SRX.esc(s); };
-  var TICKER_URL = "https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT";
-  var KLINE_URL = "https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1h&limit=48";
-  var job = { phase: "wait", price: null, closes: null };
+  var TICKER_URL = "https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT";
+  var KLINE_URL = "https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=60";
+  var job = { phase: "wait", price: null, closes: null, priceFail: null, klineFail: null };
   var started = false;
 
+  function mono(s) {
+    return '<span class="ltr" dir="ltr">' + esc(s) + "</span>";
+  }
   function endpoint(beforeKey, urlKey, afterKey) {
-    return "<p>" + esc(t(beforeKey)) + ' <span class="ltr" dir="ltr">' + esc(t(urlKey)) + "</span> " + esc(t(afterKey)) + "</p>";
+    return "<p>" + esc(t(beforeKey)) + " " + mono(t(urlKey)) + " " + esc(t(afterKey)) + "</p>";
+  }
+  function failBox(fail) {
+    if (!fail) return "";
+    var parts = [];
+    if (fail.status) parts.push(esc(t("adminStatus")) + " " + esc(String(fail.status)) + (fail.statusText ? " " + esc(fail.statusText) : ""));
+    if (fail.error) parts.push(esc(fail.error));
+    if (fail.text) parts.push(esc(fail.text.slice(0, 300)));
+    if (!parts.length) parts.push(esc(t("adminFail")));
+    return '<p class="bad" role="alert">' + parts.join(" — ") + "</p><p class=\"quiet\">" + esc(t("adminFail")) + "</p>";
   }
   function svg(closes) {
-    var w = 640;
-    var h = 220;
-    var pad = 12;
+    var w = 720;
+    var h = 240;
+    var pad = 16;
     var min = closes[0];
     var max = closes[0];
     closes.forEach(function (c) {
@@ -25,40 +37,55 @@
       var y = pad + (max - c) / (max - min) * (h - pad * 2);
       return x.toFixed(2) + "," + y.toFixed(2);
     }).join(" ");
-    return '<svg viewBox="0 0 ' + w + " " + h + '" class="chart" role="img" aria-label="' + esc(t("chartLabel")) + '"><polyline fill="none" stroke="currentColor" stroke-width="1.6" points="' + pts + '"/></svg>';
+    return '<svg viewBox="0 0 ' + w + " " + h + '" class="chart" role="img" aria-label="' + esc(t("chartLabel")) + '"><polyline fill="none" stroke="currentColor" stroke-width="1.8" points="' + pts + '"/></svg>';
   }
   function body() {
     var price = "";
     var chart = "";
     if (job.phase === "wait") {
-      chart = '<p class="muted">' + esc(t("adminWait")) + "</p>";
+      chart = '<p class="quiet">' + esc(t("adminWait")) + "</p>";
     } else {
       if (job.price != null) {
         price = '<p class="price-line"><span>' + esc(t("adminLast")) + '</span> <span class="num" dir="ltr">' + esc(job.price) + "</span></p>";
+      } else if (job.priceFail) {
+        price = failBox(job.priceFail);
       } else {
-        price = '<p class="err" role="alert">' + esc(t("adminFail")) + "</p>";
+        price = '<p class="bad" role="alert">' + esc(t("noPrice")) + "</p>";
       }
-      chart = job.closes ? svg(job.closes) : '<p class="err" role="alert">' + esc(t("adminFail")) + "</p>";
+      if (job.closes) {
+        chart = '<p class="quiet">' + esc(t("chartLabel")) + " " + '<span class="num" dir="ltr">' + esc(String(job.closes.length)) + "</span> " + esc(t("closeCount")) + '</p><div class="chart-box">' + svg(job.closes) + "</div>";
+      } else if (job.klineFail) {
+        chart = failBox(job.klineFail);
+      } else {
+        chart = '<p class="bad" role="alert">' + esc(t("badBody")) + "</p>";
+      }
     }
-    return '<div class="view"><h1>' + esc(t("adminTitle")) + '</h1><p><span class="ltr" dir="ltr">' + esc(t("pairSymbol")) + "</span></p>"
+    return '<div class="block"><h1>' + esc(t("adminTitle")) + "</h1><p>" + mono(t("pairSymbol")) + "</p>"
       + endpoint("adminTickerBefore", "url.ticker", "adminTickerAfter")
       + endpoint("adminKlineBefore", "url.kline", "adminKlineAfter")
       + "<p>" + esc(t("adminLimit")) + "</p>"
       + price
-      + '<div class="chart-box">' + chart + "</div></div>";
+      + chart
+      + "</div>";
   }
   function render() {
     window.SRX.applyDocument();
-    document.getElementById("app").innerHTML = window.SRX.headerHTML({
-      brandHref: "index.html",
-      nav: '<a class="back" href="index.html">' + esc(t("adminBack")) + "</a>"
-    }) + '<div class="page-body"><div id="main" tabindex="-1">' + body() + "</div></div>";
+    var nav = '<a class="backlink" href="index.html">' + esc(t("adminBack")) + "</a>";
+    document.getElementById("app").innerHTML = window.SRX.skip()
+      + window.SRX.bar({ brandHref: "index.html", nav: nav })
+      + '<div class="wrap"><div id="main" tabindex="-1">' + body() + "</div></div>"
+      + window.SRX.foot();
   }
   function pull(url) {
     return fetch(url, { method: "GET", cache: "no-store", credentials: "omit" }).then(function (r) {
-      if (!r.ok) return null;
-      return r.json().catch(function () { return null; });
-    }).catch(function () { return null; });
+      return r.text().then(function (text) {
+        return { ok: r.ok, status: r.status, statusText: r.statusText || "", text: text || "" };
+      }, function () {
+        return { ok: false, status: r.status, statusText: r.statusText || "", text: "" };
+      });
+    }, function (err) {
+      return { ok: false, status: 0, statusText: "", text: "", error: err && err.message ? String(err.message) : String(err) };
+    });
   }
   function load() {
     if (started) return;
@@ -66,10 +93,22 @@
     Promise.all([pull(TICKER_URL), pull(KLINE_URL)]).then(function (pair) {
       var ticker = pair[0];
       var klines = pair[1];
-      if (ticker && ticker.lastPrice != null && isFinite(Number(ticker.lastPrice))) job.price = String(ticker.lastPrice);
-      if (Array.isArray(klines) && klines.length) {
-        var closes = klines.map(function (row) { return Number(row[4]); });
-        if (closes.length && closes.every(function (n) { return isFinite(n); })) job.closes = closes;
+      if (!ticker.ok) job.priceFail = ticker;
+      else {
+        try {
+          var data = JSON.parse(ticker.text);
+          if (data && typeof data.price === "string" && isFinite(Number(data.price))) job.price = data.price;
+        } catch (e) { job.price = null; }
+      }
+      if (!klines.ok) job.klineFail = klines;
+      else {
+        try {
+          var rows = JSON.parse(klines.text);
+          if (Array.isArray(rows) && rows.length) {
+            var closes = rows.map(function (row) { return Array.isArray(row) ? Number(row[4]) : NaN; });
+            if (closes.length && closes.every(function (n) { return isFinite(n); })) job.closes = closes;
+          }
+        } catch (e2) { job.closes = null; }
       }
       job.phase = "done";
       render();

@@ -33,7 +33,7 @@
     var color = document.querySelector('meta[name="theme-color"]');
     if (color) {
       var theme = resolvedTheme();
-      color.setAttribute("content", theme === "day" ? "#f4f6f8" : theme === "night" ? "#000000" : "#07080b");
+      color.setAttribute("content", theme === "day" ? "#f5f7fb" : theme === "night" ? "#000000" : "#07080b");
     }
   }
   function setLang(lang) {
@@ -51,37 +51,36 @@
     if (window.SR.onChange) window.SR.onChange("theme");
   }
   function mark() {
-    return '<svg width="18" height="18" viewBox="0 0 22 22" aria-hidden="true"><rect x="1.2" y="1.2" width="19.6" height="19.6" rx="4" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M6 14.5 9.2 8l2.2 4.2L14 7.5 16.5 14.5" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>';
+    return '<svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="8.2" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="11" cy="11" r="2.1" fill="currentColor"/><path d="M11 1.6v2.5M11 17.9v2.5M1.6 11h2.5M17.9 11h2.5" stroke="currentColor" stroke-width="1.4"/></svg>';
   }
-  function chev() {
-    return '<svg width="10" height="10" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 4.2 6 8l4-3.8" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>';
-  }
-  function seg(kind, items, current) {
-    return '<div class="seg" role="group">' + items.map(function (it) {
+  function seg(kind, items, current, labelKey) {
+    return '<div class="seg" role="group" aria-label="' + esc(t(labelKey)) + '">' + items.map(function (it) {
       var on = current === it[0] ? ' aria-pressed="true"' : ' aria-pressed="false"';
-      return '<button type="button" data-set-' + kind + '="' + it[0] + '"' + on + '>' + esc(t(it[1])) + '</button>';
-    }).join("") + '</div>';
+      return '<button type="button" data-set-' + kind + '="' + it[0] + '"' + on + '>' + esc(t(it[1])) + "</button>";
+    }).join("") + "</div>";
   }
-  function headerHTML(opts) {
+  function prefsHTML() {
+    return seg("lang", [["en", "lang.en"], ["hi", "lang.hi"], ["ur", "lang.ur"]], window.SR.lang, "langGroup")
+      + seg("theme", [["dark", "theme.dark"], ["night", "theme.night"], ["auto", "theme.auto"]], window.SR.themeChoice, "themeGroup");
+  }
+  function bar(opts) {
     opts = opts || {};
-    var search = "";
-    if (opts.search) {
-      search = '<div class="search compact" role="search"><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.2" fill="none" stroke="currentColor"/><path d="M10.2 10.2 14 14" stroke="currentColor"/></svg><input id="q" type="search" autocomplete="off" spellcheck="false" placeholder="' + esc(t("searchPlaceholder")) + '" aria-label="' + esc(t("searchLabel")) + '" value="' + esc(window.SR.q || "") + '"></div>';
-    }
-    var brandInner = mark() + '<span>' + esc(t("brand")) + '</span>';
+    var brandInner = mark() + "<span>" + esc(t("brand")) + "</span>";
     var brand = opts.brandHref
-      ? '<a class="brand" href="' + esc(opts.brandHref) + '">' + brandInner + '</a>'
-      : '<button type="button" class="brand" data-view="home">' + brandInner + '</button>';
-    return '<div class="sticky-stack"><button type="button" class="skip" data-skip="1">' + esc(t("skip")) + '</button><div class="bar">' + brand
+      ? '<a class="brandlock" href="' + esc(opts.brandHref) + '">' + brandInner + "</a>"
+      : '<button type="button" class="brandlock" data-view="home">' + brandInner + "</button>";
+    return '<header class="topnav"><div class="topnav-inner">' + brand
       + (opts.nav || "")
-      + '<div class="tools">' + search
-      + (opts.extra || "")
-      + seg("lang", [["en", "lang.en"], ["hi", "lang.hi"], ["ur", "lang.ur"]], window.SR.lang)
-      + seg("theme", [["dark", "theme.dark"], ["night", "theme.night"], ["auto", "theme.auto"]], window.SR.themeChoice)
-      + '</div></div></div>';
+      + (opts.mid || "")
+      + '<div class="prefs">' + prefsHTML() + "</div>"
+      + (opts.end || "")
+      + "</div></header>";
   }
-  function footerHTML() {
-    return '<footer class="desk-foot"><p>' + esc(t("noOrders")) + '</p></footer>';
+  function foot() {
+    return '<footer class="foot"><p>' + esc(t("footerNote")) + '</p><nav><a href="stop.html">' + esc(t("deviceLink")) + '</a><a href="admin.html">' + esc(t("chartLink")) + "</a></nav></footer>";
+  }
+  function skip() {
+    return '<button type="button" class="skip" data-skip="1">' + esc(t("skip")) + "</button>";
   }
   function initChrome() {
     document.addEventListener("click", function (e) {
@@ -102,5 +101,14 @@
       }
     });
   }
-  window.SRX = { t: t, esc: esc, applyDocument: applyDocument, headerHTML: headerHTML, footerHTML: footerHTML, initChrome: initChrome, chev: chev };
+  window.SRX = {
+    t: t,
+    esc: esc,
+    applyDocument: applyDocument,
+    prefsHTML: prefsHTML,
+    bar: bar,
+    foot: foot,
+    skip: skip,
+    initChrome: initChrome
+  };
 })();
