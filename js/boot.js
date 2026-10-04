@@ -20,7 +20,13 @@
   SR.lang = lang;
   SR.themeChoice = choice;
   SR.q = SR.q || "";
-  SR.view = SR.view || "search";
+  SR.view = SR.view || "home";
   SR.menu = SR.menu || null;
+  SR.xferFilter = SR.xferFilter || "all";
+  SR.bot = SR.bot || "spot";
+  SR.ethMark = SR.ethMark || "";
+  try { SR.ethMark = localStorage.getItem("sr-eth-mark") || ""; } catch (e) { SR.ethMark = ""; }
+  try { SR.session = JSON.parse(localStorage.getItem("sr-session") || "null"); } catch (e2) { SR.session = null; }
+  if (!SR.session || !SR.session.name) SR.session = null;
   window.SR = SR;
 })();
