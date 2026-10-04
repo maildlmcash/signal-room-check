@@ -1,1 +1,1 @@
-@/workspace/signal-room-next/js/app.js
+Lyogc2lnbmFsIHJvb20gYXBwICov
