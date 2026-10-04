@@ -118,3 +118,40 @@
       var lead = c.kind === "plan" ? t("planCard") : t("openPaper");
       return '<button type="button" class="dircard" data-g-open="' + c.id + '"' + on + "><strong>" + esc(t("botCard." + c.id)) + '</strong><span class="quiet">' + esc(lead) + '</span><span class="meta">' + meta + "</span></button>";
     }).join("");
+    return '<section class="block"><h1>' + esc(t("botsTitle")) + '</h1><p class="banner">' + esc(t("paperLine")) + '</p><p class="quiet">' + esc(t("botsLead")) + "</p>"
+      + '<div class="fields">' + field("g-search", "dirSearch", S.gq, "") + "</div>"
+      + '<div class="modes">' + tags + "</div>"
+      + (q || qnorm() || S.gTag ? '<p class="quiet">' + esc(t("hits")) + " " + mono(String(rows.length)) + "</p>" : "")
+      + panel
+      + (cards ? '<div class="dirgrid">' + cards + "</div>" : '<p class="quiet">' + esc(t("empty")) + "</p>") + "</section>";
+  }
+  function viewIntegrations() {
+    var saved = readArr("sr-room-venues").filter(function (x) { return typeof x === "string"; });
+    var msg = S.integMsg ? '<p class="bad" role="alert">' + esc(t(S.integMsg)) + "</p>" : "";
+    var cards = VENUES.map(function (id) {
+      var on = saved.indexOf(id) !== -1;
+      return '<button type="button" class="dircard" data-venue="' + id + '" aria-pressed="' + (on ? "true" : "false") + '"><strong>' + esc(t("venue." + id)) + '</strong><span class="quiet">' + esc(t(on ? "integOn" : "integOff")) + "</span></button>";
+    }).join("");
+    return '<section class="block"><h1>' + esc(t("integTitle")) + '</h1><p class="quiet">' + esc(t("integLead")) + "</p>" + msg + '<div class="dirgrid">' + cards + "</div></section>";
+  }
+  function explain(titleKey, bodyKey, view) {
+    var go = '<div class="rowacts"><button type="button" class="ghost" data-view="' + view + '">' + esc(t("nav." + view)) + "</button></div>";
+    return '<div class="panel"><h2>' + esc(t(titleKey)) + "</h2><p>" + esc(t(bodyKey)) + "</p>" + go + "</div>";
+  }
+  function viewResources() {
+    return '<section class="block"><h1>' + esc(t("resTitle")) + '</h1><p class="quiet">' + esc(t("resLead")) + "</p>"
+      + explain("topicGrid", "resGrid", "bots") + explain("topicDca", "resDca", "bots") + explain("topicLot", "resLot", "tax") + explain("topicAlert", "resAlert", "alerts") + "</section>";
+  }
+  function viewLearn() {
+    return '<section class="block"><h1>' + esc(t("learnTitle")) + '</h1><p class="quiet">' + esc(t("learnLead")) + "</p>"
+      + explain("topicGrid", "learnGrid", "bots") + explain("topicDca", "learnDca", "bots") + explain("topicLot", "learnLot", "tax") + explain("topicAlert", "learnAlert", "alerts") + "</section>";
+  }
+  function viewAccountants() {
+    var lots = readArr("sr-room-lots").filter(function (r) {
+      return r && typeof r.asset === "string" && (r.side === "buy" || r.side === "sell") && typeof r.qty === "number" && typeof r.price === "number" && typeof r.date === "string";
+    });
+    var report = costReport(lots);
+    var rows = lots.map(function (r) {
+      return "<tr><td>" + mono(r.date || "—") + "</td><td>" + esc(r.wallet || "—") + "</td><td>" + mono(r.asset) + "</td><td>" + esc(t("side." + r.side)) + "</td><td>" + mono(fmt(r.qty)) + "</td><td>" + mono(fmt(r.price)) + "</td></tr>";
+    }).join("");
+    var sums = Object.keys(report).map(function (a) {
