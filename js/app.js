@@ -1,1 +1,1 @@
-PLACEHOLDER_WILL_FAIL
+file:///workspace/signal-room-next/js/app.js
