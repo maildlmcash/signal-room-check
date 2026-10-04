@@ -83,3 +83,38 @@
       + (cards ? '<div class="dirgrid">' + cards + "</div>" : '<p class="quiet">' + esc(t("empty")) + "</p>") + "</section>";
   }
   function planForm(botId) {
+    var rows = readArr("sr-room-plans").filter(function (r) { return r && r.bot === botId && typeof r.name === "string"; });
+    var list = rows.map(function (r) {
+      return '<li><strong class="isolate">' + esc(r.name) + '</strong><div class="quiet isolate">' + esc(r.note || "") + '</div><button type="button" class="ghost" data-remove-plan="' + esc(r.id) + '">' + esc(t("remove")) + "</button></li>";
+    }).join("");
+    var msg = S.planMsg ? '<p class="bad" role="alert">' + esc(t(S.planMsg)) + "</p>" : "";
+    return '<p class="quiet">' + esc(t("planCard")) + "</p>"
+      + '<div class="fields">' + field("plan-name", "planName", S.planName, "") + field("plan-note", "planNote", S.planNote, "") + "</div>"
+      + msg + '<div class="rowacts"><button type="button" class="solid" id="plan-save">' + esc(t("planSave")) + "</button></div>"
+      + (rows.length ? '<ul class="nodes">' + list + "</ul>" : '<p class="quiet">' + esc(t("planEmpty")) + "</p>");
+  }
+  function viewBots() {
+    var q = String(S.gq || "").trim().toLowerCase();
+    var rows = BOTS.filter(function (c) {
+      if (S.gTag && c.tags.indexOf(S.gTag) === -1) return false;
+      var blob = [t("botCard." + c.id)].concat(c.tags.map(function (tag) { return t("tag." + tag); })).join("\n");
+      if (q && blob.toLowerCase().indexOf(q) === -1) return false;
+      return hit([blob, t("exampleTag")]);
+    });
+    var tags = '<button type="button" data-g-tag=""' + (S.gTag === "" ? ' aria-pressed="true"' : ' aria-pressed="false"') + ">" + esc(t("tagAll")) + "</button>" + BOT_TAGS.map(function (tag) {
+      var on = S.gTag === tag ? ' aria-pressed="true"' : ' aria-pressed="false"';
+      return '<button type="button" data-g-tag="' + tag + '"' + on + ">" + esc(t("tag." + tag)) + "</button>";
+    }).join("");
+    var open = BOTS.filter(function (c) { return c.id === S.gOpen; })[0];
+    var panel = "";
+    if (open && rows.some(function (c) { return c.id === open.id; })) {
+      var inner = open.kind === "smart" ? smartBody() : open.kind === "plan" ? planForm(open.id) : calcBody({ bag: "bot-" + open.id, kind: open.kind, lev: open.lev, reverse: open.reverse, fut: open.fut });
+      if ((open.kind === "smart" || open.kind === "plan") && open.fut) inner = '<p class="quiet">' + esc(t("paperFutures")) + "</p>" + inner;
+      panel = paperPanel("botCard." + open.id, inner, 'data-g-close="1"');
+    }
+    var cards = rows.map(function (c) {
+      var on = S.gOpen === c.id ? ' aria-pressed="true"' : ' aria-pressed="false"';
+      var meta = c.tags.map(function (tag) { return '<span class="pill">' + esc(t("tag." + tag)) + "</span>"; }).join("");
+      var lead = c.kind === "plan" ? t("planCard") : t("openPaper");
+      return '<button type="button" class="dircard" data-g-open="' + c.id + '"' + on + "><strong>" + esc(t("botCard." + c.id)) + '</strong><span class="quiet">' + esc(lead) + '</span><span class="meta">' + meta + "</span></button>";
+    }).join("");
