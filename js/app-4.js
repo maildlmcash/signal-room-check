@@ -1,1 +1,2 @@
-ICB2YXIgTUFSS0VUUyA9IFsK
+  var MARKETS = [];
+  // pending full body
