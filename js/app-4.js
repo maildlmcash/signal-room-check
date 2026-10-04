@@ -189,3 +189,38 @@
     var msg = S.priceMsg ? '<p role="status">' + esc(t(S.priceMsg)) + "</p>" : "";
     var cards = PLANS.map(function (p) {
       var on = picked === p.id ? ' aria-pressed="true"' : ' aria-pressed="false"';
+      return '<article class="dircard"><div class="cardtop"><h3>' + esc(t(p.name)) + '</h3><span class="pill">' + esc(t("exampleTag")) + "</span></div><p>" + mono(p.price) + " " + esc(t("perMonth")) + '</p><p class="quiet">' + esc(t(p.note)) + '</p><button type="button" class="ghost" data-price="' + p.id + '"' + on + ">" + esc(t("priceSave")) + "</button></article>";
+    }).join("");
+    return '<section class="block"><h1>' + esc(t("priceTitle")) + '</h1><p class="quiet">' + esc(t("priceLead")) + '</p><p class="banner">' + esc(t("priceNone")) + "</p>" + msg + '<div class="dirgrid">' + cards + "</div></section>";
+  }
+  function viewMarketplace() {
+    var rows = readArr("sr-room-strategies").filter(function (r) { return r && typeof r.name === "string"; });
+    var list = rows.map(function (r) {
+      return '<li><strong class="isolate">' + esc(r.name) + '</strong><div class="quiet isolate">' + esc(r.note || "") + '</div><button type="button" class="ghost" data-remove-strategy="' + esc(r.id) + '">' + esc(t("remove")) + "</button></li>";
+    }).join("");
+    var market = MARKET.map(function (id) {
+      return '<button type="button" class="dircard" data-market="' + id + '"><strong>' + esc(t("m." + id)) + '</strong><span class="quiet">' + esc(t("mLead." + id)) + '</span><span class="pill">' + esc(t("exampleTag")) + "</span></button>";
+    }).join("");
+    var msg = S.hMsg ? '<p class="bad" role="alert">' + esc(t(S.hMsg)) + "</p>" : "";
+    return '<section class="block"><h1>' + esc(t("marketTitle2")) + '</h1><p class="banner">' + esc(t("paperLine")) + '</p><p class="quiet">' + esc(t("marketLead2")) + '</p><div class="dirgrid">' + market + "</div>"
+      + "<h2>" + esc(t("strategyTitle")) + "</h2>" + '<div class="fields">' + field("h-name", "strategyName", S.hName, "") + field("h-note", "strategyNote", S.hNote, "") + "</div>"
+      + msg + '<div class="rowacts"><button type="button" class="solid" id="strategy-add">' + esc(t("strategyAdd")) + "</button></div>"
+      + (rows.length ? '<ul class="nodes">' + list + "</ul>" : '<p class="quiet">' + esc(t("strategyEmpty")) + "</p>") + "</section>";
+  }
+  function linkGrid(pairs) {
+    return '<div class="dirgrid">' + pairs.map(function (it) {
+      return '<button type="button" class="dircard" data-view="' + it[0] + '"><strong>' + esc(t(it[1])) + '</strong><span class="quiet">' + esc(t(it[2])) + "</span></button>";
+    }).join("") + "</div>";
+  }
+  function viewFeatures() {
+    return '<section class="block"><h1>' + esc(t("featTitle")) + '</h1><p class="quiet">' + esc(t("featLead")) + "</p>" + linkGrid([
+      ["home", "nav.home", "feat.home"],
+      ["markets", "nav.markets", "feat.markets"],
+      ["spot", "nav.spot", "feat.spot"],
+      ["futures", "nav.futures", "feat.futures"],
+      ["bots", "nav.bots", "feat.bots"],
+      ["tax", "nav.tax", "feat.tax"],
+      ["alerts", "nav.alerts", "feat.alerts"]
+    ]) + "</section>";
+  }
+  function viewSolutions() {
