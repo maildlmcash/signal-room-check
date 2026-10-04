@@ -132,9 +132,9 @@
   }
   function tapeInner() {
     var rows = filteredXfer();
-    return "<h2>" + esc(t("nav.transfers")) + " " + badge() + "</h2><p class="muted">" + esc(t("sampleLong")) + " " + esc(t("loop")) + "</p><ul class="tape-list">"
+    return "<h2>" + esc(t("nav.transfers")) + " " + badge() + "</h2><p class=\"muted\">" + esc(t("sampleLong")) + " " + esc(t("loop")) + "</p><ul class=\"tape-list\">"
       + (rows.length ? rows.map(function (r) {
-        return "<li><span class="num ltr">" + esc(r.when) + "</span><span>" + esc(entName(r.from)) + " → " + esc(entName(r.to)) + "</span><span>" + tick(r.asset) + " " + esc(r.amt) + "</span></li>";
+        return "<li><span class=\"num ltr\">" + esc(r.when) + "</span><span>" + esc(entName(r.from)) + " → " + esc(entName(r.to)) + "</span><span>" + tick(r.asset) + " " + esc(r.amt) + "</span></li>";
       }).join("") : "<li>" + esc(t("empty")) + "</li>")
       + "</ul>";
   }
@@ -145,7 +145,7 @@
         var lab = allLabels().filter(function (x) { return x.id === l.label; })[0];
         return lab ? esc(labelName(lab)) : "";
       }).filter(Boolean).join(", ");
-      return '<article class="card"><h2>' + esc(entName(e.id)) + "</h2><p class="muted">" + esc(t("kind." + e.kind)) + "</p><p>" + badge() + " " + esc(t(e.band)) + " " + esc(e.amt) + " " + tick(e.asset) + "</p>"
+      return '<article class="card"><h2>' + esc(entName(e.id)) + "</h2><p class=\"muted\">" + esc(t("kind." + e.kind)) + "</p><p>" + badge() + " " + esc(t(e.band)) + " " + esc(e.amt) + " " + tick(e.asset) + "</p>"
         + (marks ? "<p>" + esc(t("nav.labels")) + ": " + marks + "</p>" : "")
         + '<button type="button" class="text-btn" data-open-entity="' + e.id + '">' + esc(t(open ? "close" : "open")) + "</button>"
         + (open ? "<p>" + esc(t("ent." + e.id + ".blurb")) + "</p>" : "")
@@ -160,8 +160,8 @@
       return '<button type="button" class="chip" data-view="' + v + '">' + esc(t("nav." + v)) + "</button>";
     }).join("") : "<p>" + esc(t("empty")) + "</p>") + "</div>";
     return page("nav.search", "<p>" + esc(t("searchLede")) + "</p><p>" + badge() + " " + esc(t("sampleLong")) + "</p>"
-      + (qtext() ? "<p class="muted">" + esc(t("hits")) + " " + n + "</p>" : "")
-      + '<div class="grid stats"><div class="card stat"><span>' + esc(t("nav.entities")) + "</span><b>" + ENT.length + "</b></div><div class="card stat"><span>" + esc(t("nav.transfers")) + "</span><b>" + XFER.length + "</b></div><div class="card stat"><span>" + esc(t("nav.labels")) + "</span><b>" + allLabels().length + "</b></div></div>"
+      + (qtext() ? "<p class=\"muted\">" + esc(t("hits")) + " " + n + "</p>" : "")
+      + '<div class="grid stats"><div class="card stat"><span>' + esc(t("nav.entities")) + "</span><b>" + ENT.length + "</b></div><div class=\"card stat\"><span>" + esc(t("nav.transfers")) + "</span><b>" + XFER.length + "</b></div><div class=\"card stat\"><span>" + esc(t("nav.labels")) + "</span><b>" + allLabels().length + "</b></div></div>"
       + "<h2>" + esc(t("nav.search")) + "</h2>" + jumps
       + "<h2>" + esc(t("nav.entities")) + "</h2>" + (ents.length ? entityCards(ents) : "<p>" + esc(t("empty")) + "</p>"));
   }
@@ -177,8 +177,8 @@
   }
   function alertsView() {
     var rows = readArr("sr-alerts").filter(function (a) { return hit(a.symbol + " " + a.threshold); });
-    var list = rows.length ? "<ul class="hops">" + rows.map(function (a) {
-      return "<li>" + tick(a.symbol) + " " + esc(t(a.dir === "down" ? "dir.down" : "dir.up")) + " <span class="num">" + esc(a.threshold) + '</span> <button type="button" class="text-btn" data-action="rm-alert" data-id="' + esc(a.id) + '">' + esc(t("remove")) + "</button></li>";
+    var list = rows.length ? "<ul class=\"hops\">" + rows.map(function (a) {
+      return "<li>" + tick(a.symbol) + " " + esc(t(a.dir === "down" ? "dir.down" : "dir.up")) + " <span class=\"num\">" + esc(a.threshold) + '</span> <button type="button" class="text-btn" data-action="rm-alert" data-id="' + esc(a.id) + '">' + esc(t("remove")) + "</button></li>";
     }).join("") + "</ul>" : "<p>" + esc(t("empty")) + "</p>";
     return page("nav.alerts", "<p>" + esc(t("notWatching")) + " " + esc(t("deviceOnly")) + "</p>"
       + '<div class="card"><div class="field"><span>' + esc(t("alertSymbol")) + '</span><input id="alert-symbol" class="ltr" maxlength="8"></div>'
@@ -195,10 +195,10 @@
     var entOpts = ENT.map(function (e) { return '<option value="' + e.id + '">' + esc(entName(e.id)) + "</option>"; }).join("");
     var labOpts = allLabels().map(function (l) { return '<option value="' + esc(l.id) + '">' + esc(labelName(l)) + "</option>"; }).join("");
     return page("nav.labels", "<p>" + esc(t("labelsIntro")) + " " + esc(t("deviceOnly")) + "</p>"
-      + "<ul class="hops">" + (chips || "<li>" + esc(t("empty")) + "</li>") + "</ul>"
+      + "<ul class=\"hops\">" + (chips || "<li>" + esc(t("empty")) + "</li>") + "</ul>"
       + '<div class="card"><div class="field"><span>' + esc(t("labelPh")) + '</span><input id="label-text" maxlength="32"></div><button type="button" class="solid" data-action="add-label">' + esc(t("add")) + "</button></div>"
-      + '<div class="card"><div class="field"><span>' + esc(t("assignEntity")) + "</span><select id="link-entity">" + entOpts + "</select></div>"
-      + '<div class="field"><span>' + esc(t("assignLabel")) + "</span><select id="link-label">" + labOpts + "</select></div>"
+      + '<div class="card"><div class="field"><span>' + esc(t("assignEntity")) + "</span><select id=\"link-entity\">" + entOpts + "</select></div>"
+      + '<div class="field"><span>' + esc(t("assignLabel")) + "</span><select id=\"link-label\">" + labOpts + "</select></div>"
       + '<button type="button" class="solid" data-action="assign">' + esc(t("assign")) + "</button></div>");
   }
   function botsView() {
@@ -210,7 +210,7 @@
   function gridView(which) {
     var seed = which === "futures" ? 2 : 1;
     return page(which === "futures" ? "nav.futures" : "nav.spot", "<p>" + esc(t(which === "futures" ? "futuresIntro" : "spotIntro")) + "</p><p>" + badge() + " " + esc(t("gridCaption")) + "</p>"
-      + "<p><span class="muted">" + esc(t("gridLower")) + '</span> <span class="num">90000</span> <span class="muted">' + esc(t("gridUpper")) + '</span> <span class="num">110000</span> <span class="muted">' + esc(t("gridLines")) + '</span> <span class="num">8</span></p>'
+      + "<p><span class=\"muted\">" + esc(t("gridLower")) + '</span> <span class="num">90000</span> <span class="muted">' + esc(t("gridUpper")) + '</span> <span class="num">110000</span> <span class="muted">' + esc(t("gridLines")) + '</span> <span class="num">8</span></p>'
       + band(seed)
       + "<p><b>" + esc(t("plan.start")) + "</b> " + esc(t(which === "futures" ? "futuresIntro" : "spotIntro")) + "</p>"
       + "<p><b>" + esc(t("plan.extra")) + "</b> " + esc(t("gridCaption")) + "</p>"
@@ -234,7 +234,7 @@
     var cards = rules.map(function (id) {
       return '<article class="card"><h2>' + esc(t("rule." + id + ".name")) + "</h2><p>" + esc(t("rule." + id + ".body")) + "</p></article>";
     }).join("");
-    return page("nav.signal", "<p>" + esc(t("signalIntro")) + "</p><p>" + esc(t("noOrders")) + "</p><div class="grid cards">" + (cards || "<p>" + esc(t("empty")) + "</p>") + "</div>");
+    return page("nav.signal", "<p>" + esc(t("signalIntro")) + "</p><p>" + esc(t("noOrders")) + "</p><div class=\"grid cards\">" + (cards || "<p>" + esc(t("empty")) + "</p>") + "</div>");
   }
   function catalogView() {
     var cats = [["all", "cat.all"], ["range", "cat.range"], ["schedule", "cat.schedule"], ["mix", "cat.mix"]];
@@ -247,7 +247,7 @@
       return hit(t("item." + it.id + ".name") + t("item." + it.id + ".body"));
     });
     var cards = items.map(function (it) {
-      return '<article class="card"><h2>' + esc(t("item." + it.id + ".name")) + "</h2><p class="muted">" + esc(t("cat." + it.cat)) + "</p><p>" + esc(t("item." + it.id + ".body")) + "</p></article>";
+      return '<article class="card"><h2>' + esc(t("item." + it.id + ".name")) + "</h2><p class=\"muted\">" + esc(t("cat." + it.cat)) + "</p><p>" + esc(t("item." + it.id + ".body")) + "</p></article>";
     }).join("");
     return page("nav.catalog", "<p>" + esc(t("catIntro")) + "</p><p>" + esc(t("noOrders")) + "</p>" + chips + '<div class="grid cards">' + (cards || "<p>" + esc(t("empty")) + "</p>") + "</div>");
   }
@@ -280,7 +280,7 @@
     }).join("");
     var controls = '<div class="inline"><label class="field"><span>' + esc(t("taxYear")) + '</span><select id="tax-year">'
       + ["2024", "2025", "2026"].map(function (y) { return '<option value="' + y + '"' + (window.SR.year === y ? " selected" : "") + ">" + y + "</option>"; }).join("")
-      + '</select></label><label class="field"><span>' + esc(t("taxMethod")) + '</span><select id="tax-method"><option value="first"' + (window.SR.method === "first" ? " selected" : "") + ">" + esc(t("method.first")) + '</option><option value="avg"' + (window.SR.method === "avg" ? " selected" : "") + ">" + esc(t("method.avg")) + "</select></label></div>";
+      + '</select></label><label class="field"><span>' + esc(t("taxMethod")) + '</span><select id="tax-method"><option value="first"' + (window.SR.method === "first" ? " selected" : "") + ">" + esc(t("method.first")) + '</option><option value="avg"' + (window.SR.method === "avg" ? " selected" : "") + ">" + esc(t("method.avg")) + "</option></select></label></div>";
     var body = "";
     if (window.SR.taxTab === "disposals") {
       body = sheet([t("asset"), t("col.proceeds"), t("col.cost"), t("col.gain")], [
@@ -398,7 +398,7 @@
   function candleTable(rows, sample) {
     var body = rows.map(function (r) {
       var when = sample ? String(r.t) : hhmm(r.t);
-      return "<tr><td class="num ltr">" + esc(when) + "</td><td class="num ltr">" + r.o + "</td><td class="num ltr">" + r.h + "</td><td class="num ltr">" + r.l + "</td><td class="num ltr">" + r.c + "</td></tr>";
+      return "<tr><td class=\"num ltr\">" + esc(when) + "</td><td class=\"num ltr\">" + r.o + "</td><td class=\"num ltr\">" + r.h + "</td><td class=\"num ltr\">" + r.l + "</td><td class=\"num ltr\">" + r.c + "</td></tr>";
     }).join("");
     return '<table class="sheet"><thead><tr><th>' + esc(t("when")) + "</th><th>" + esc(t("candle.open")) + "</th><th>" + esc(t("candle.high")) + "</th><th>" + esc(t("candle.low")) + "</th><th>" + esc(t("candle.close")) + "</th></tr></thead><tbody>" + body + "</tbody></table>";
   }
@@ -424,9 +424,9 @@
     }
     if (state.sample) {
       if (!mkt.price) head += '<p class="price"><span class="num ltr">100000</span> <span class="badge">' + esc(t("sampleSeries")) + "</span></p>";
-      head += "<p><span class="badge">" + esc(t("sampleSeries")) + "</span> " + esc(t("sampleLong")) + " " + esc(t("sampleClock")) + "</p>";
+      head += "<p><span class=\"badge\">" + esc(t("sampleSeries")) + "</span> " + esc(t("sampleLong")) + " " + esc(t("sampleClock")) + "</p>";
     } else if (mkt.candles) {
-      head += "<p><span class="badge live">" + esc(t("liveSeries")) + "</span> " + esc(t("liveClock")) + "</p>";
+      head += "<p><span class=\"badge live\">" + esc(t("liveSeries")) + "</span> " + esc(t("liveClock")) + "</p>";
     }
     var table = drawn.length ? candleTable(drawn.slice(-8), state.sample) : "";
     var chart = '<div class="desk-split"><section class="card"><h2>' + esc(t("chartTitle")) + "</h2>"
@@ -434,7 +434,7 @@
       + head
       + '<div class="chart-wrap"><canvas id="chart"></canvas></div>'
       + table
-      + "</section><aside class="card"><h2>" + esc(t("sourceTitle")) + "</h2>"
+      + "</section><aside class=\"card\"><h2>" + esc(t("sourceTitle")) + "</h2>"
       + "<p>" + esc(t("sourceBody")) + "</p>"
       + endpointLine("tickerWeight")
       + endpointLine("klineWeight")
@@ -504,25 +504,25 @@
     if (mkt.phase === "idle") loadMarkets();
   }
   function apiView() {
-    return page("nav.api", "<p>" + esc(t("apiIntro")) + "</p><ul class="hops"><li>" + esc(t("api.1")) + "</li><li>" + esc(t("api.2")) + "</li><li>" + esc(t("api.3")) + "</li><li>" + esc(t("api.4")) + "</li></ul><p>" + esc(t("weightsNote")) + "</p>");
+    return page("nav.api", "<p>" + esc(t("apiIntro")) + "</p><ul class=\"hops\"><li>" + esc(t("api.1")) + "</li><li>" + esc(t("api.2")) + "</li><li>" + esc(t("api.3")) + "</li><li>" + esc(t("api.4")) + "</li></ul><p>" + esc(t("weightsNote")) + "</p>");
   }
   function visView() {
     var nodes = ENT.filter(function (e) { return hit(entName(e.id)); }).map(function (e) {
-      return '<div class="node"><strong>' + esc(entName(e.id)) + "</strong><p class="muted">" + esc(t("kind." + e.kind)) + "</p></div>";
+      return '<div class="node"><strong>' + esc(entName(e.id)) + "</strong><p class=\"muted\">" + esc(t("kind." + e.kind)) + "</p></div>";
     }).join("");
     return page("nav.visualizer", "<p>" + esc(t("visIntro")) + "</p><p>" + badge() + '</p><div class="vmap">' + (nodes || "<p>" + esc(t("empty")) + "</p>") + "</div>");
   }
   function tracerView() {
     var hops = XFER.slice(0, 4).map(function (r, i) {
-      return "<li><span class="num">" + (i + 1) + "</span> " + esc(t("hop")) + " " + esc(entName(r.from)) + " → " + esc(entName(r.to)) + " " + tick(r.asset) + " " + esc(r.amt) + "</li>";
+      return "<li><span class=\"num\">" + (i + 1) + "</span> " + esc(t("hop")) + " " + esc(entName(r.from)) + " → " + esc(entName(r.to)) + " " + tick(r.asset) + " " + esc(r.amt) + "</li>";
     }).join("");
-    return page("nav.tracer", "<p>" + esc(t("tracerIntro")) + "</p><p>" + badge() + "</p><ol class="hops">" + hops + "</ol>");
+    return page("nav.tracer", "<p>" + esc(t("tracerIntro")) + "</p><p>" + badge() + "</p><ol class=\"hops\">" + hops + "</ol>");
   }
   function insightsView() {
     var cards = ["desks", "routes", "marks"].map(function (id, i) {
       var n = [2, 4, 5][i];
       if (!hit(t("ins." + id + ".title") + t("ins." + id + ".body"))) return "";
-      return '<article class="card"><h2>' + esc(t("ins." + id + ".title")) + "</h2><p class="price">" + n + "</p><p>" + badge() + " " + esc(t("ins." + id + ".body")) + "</p></article>";
+      return '<article class="card"><h2>' + esc(t("ins." + id + ".title")) + "</h2><p class=\"price\">" + n + "</p><p>" + badge() + " " + esc(t("ins." + id + ".body")) + "</p></article>";
     }).join("");
     return page("nav.insights", "<p>" + esc(t("insightsIntro")) + "</p><p>" + esc(t("noForecast")) + '</p><div class="grid cards">' + (cards || "<p>" + esc(t("empty")) + "</p>") + "</div>");
   }
