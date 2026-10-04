@@ -69,7 +69,7 @@
   }
   function qtext() { return (SR.q || "").trim().toLowerCase(); }
   function fmt(n) {
-    if (!isFinite(n)) return "\u2014";
+    if (!isFinite(n)) return "—";
     var neg = n < 0;
     var a = Math.abs(n);
     var s = a === 0 ? "0" : a >= 1000 ? a.toFixed(2) : a >= 1 ? a.toFixed(4) : a.toFixed(8);
@@ -174,7 +174,7 @@
   }
   function sortMark(key) {
     if (SR.xferSort.key !== key) return "";
-    return SR.xferSort.dir < 0 ? " \u2193" : " \u2191";
+    return SR.xferSort.dir < 0 ? " ↓" : " ↑";
   }
   function sortHTML() {
     function btn(key, label) {
