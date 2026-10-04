@@ -1,1 +1,1 @@
-file:///workspace/signal-room-next/js/app.js
+USE_MCP_DROP
