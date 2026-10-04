@@ -155,3 +155,37 @@
       return "<tr><td>" + mono(r.date || "—") + "</td><td>" + esc(r.wallet || "—") + "</td><td>" + mono(r.asset) + "</td><td>" + esc(t("side." + r.side)) + "</td><td>" + mono(fmt(r.qty)) + "</td><td>" + mono(fmt(r.price)) + "</td></tr>";
     }).join("");
     var sums = Object.keys(report).map(function (a) {
+      var box = report[a];
+      return '<div class="panel"><h2>' + mono(a) + '</h2><dl class="stats">' + stat("taxRealized", box.realized) + '<div class="stat"><dt>' + esc(t("taxRemain")) + "</dt><dd>" + mono(fmt(box.remain)) + "</dd></div></dl></div>";
+    }).join("");
+    return '<section class="block"><h1>' + esc(t("acctTitle")) + '</h1><p class="banner">' + esc(t("acctLead")) + "</p>"
+      + (rows ? '<div class="tape-wrap"><table><thead><tr><th>' + esc(t("taxDate")) + "</th><th>" + esc(t("taxWallet")) + "</th><th>" + esc(t("taxAsset")) + "</th><th>" + esc(t("taxSide")) + "</th><th>" + esc(t("taxQty")) + "</th><th>" + esc(t("taxPrice")) + "</th></tr></thead><tbody>" + rows + "</tbody></table></div>" + sums : '<p class="quiet">' + esc(t("taxEmpty")) + "</p>")
+      + '<div class="rowacts"><button type="button" class="ghost" data-view="tax">' + esc(t("nav.tax")) + "</button></div></section>";
+  }
+  function exampleCards(rows) {
+    return '<div class="dirgrid">' + rows.map(function (r) {
+      return '<article class="dircard"><div class="cardtop"><h3>' + esc(t(r[0])) + '</h3><span class="pill">' + esc(t("exampleTag")) + '</span></div><p class="quiet">' + esc(t(r[1])) + "</p>" + (r[2] ? '<p>' + esc(t("exampleFig")) + " " + mono(r[2]) + "</p>" : "") + "</article>";
+    }).join("") + "</div>";
+  }
+  function viewEarn() {
+    return '<section class="block"><h1>' + esc(t("earnTitle")) + '</h1><p class="quiet">' + esc(t("earnLead")) + "</p>" + exampleCards([["earn1", "earn1n", "3%"], ["earn2", "earn2n", "5%"]]) + "</section>";
+  }
+  function viewRwa() {
+    return '<section class="block"><h1>' + esc(t("rwaTitle")) + '</h1><p class="quiet">' + esc(t("rwaLead")) + "</p>" + exampleCards([["rwa1", "rwa1n", "1000"], ["rwa2", "rwa2n", "250"]]) + "</section>";
+  }
+  function viewCard() {
+    return '<section class="block"><h1>' + esc(t("cardTitle")) + '</h1><p class="banner">' + esc(t("cardLead")) + "</p>" + exampleCards([["card1", "card1n", ""], ["card2", "card2n", ""]]) + "</section>";
+  }
+  function viewAi() {
+    var saved = lsGet("sr-room-ai") || "";
+    var msg = S.aiMsg ? '<p role="status">' + esc(t(S.aiMsg)) + "</p>" : "";
+    var shown = saved ? '<div class="panel"><h2>' + esc(t("aiSavedTitle")) + '</h2><p class="isolate">' + esc(saved) + "</p></div>" : '<p class="quiet">' + esc(t("aiEmpty")) + "</p>";
+    return '<section class="block"><h1>' + esc(t("aiTitle")) + '</h1><p class="banner">' + esc(t("aiLead")) + "</p>"
+      + '<div class="fields">' + field("ai-note", "aiNote", S.aiText, "") + "</div>" + msg
+      + '<div class="rowacts"><button type="button" class="solid" id="ai-save">' + esc(t("aiSave")) + "</button></div>" + shown + "</section>";
+  }
+  function viewPricing() {
+    var picked = lsGet("sr-room-price") || "";
+    var msg = S.priceMsg ? '<p role="status">' + esc(t(S.priceMsg)) + "</p>" : "";
+    var cards = PLANS.map(function (p) {
+      var on = picked === p.id ? ' aria-pressed="true"' : ' aria-pressed="false"';
