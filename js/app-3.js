@@ -33,7 +33,7 @@
     var view = e.target.closest("[data-view]");
     if (view) { window.SR.view = view.getAttribute("data-view"); render(); return; }
     var pair = e.target.closest("[data-pair]");
-    if (pair) { S.pair = pair.getAttribute("data-pair"); render(); return; }
+    if (pair) { S.pair = pair.getAttribute("data-pair"); S.pairNote = "pairSet"; render(); return; }
     var side = e.target.closest("[data-side]");
     if (side) { S.side = side.getAttribute("data-side"); render(); return; }
     var pred = e.target.closest("[data-pred]");
@@ -47,10 +47,7 @@
     var gopen = e.target.closest("[data-g-open]");
     if (gopen) {
       var gid = gopen.getAttribute("data-g-open");
-      S.gOpen = gid;
-      var card = GAINIUM.filter(function (c) { return c.id === gid; })[0];
-      var modes = card ? modesOf(card) : ["grid"];
-      if (modes.indexOf(S.gMode) === -1) S.gMode = modes[0];
+      S.gOpen = S.gOpen === gid ? "" : gid;
       render();
       return;
     }
@@ -74,6 +71,44 @@
       strategies.push({ id: uid(), name: t("m." + mid), note: t("mLead." + mid) });
       if (!writeArr("sr-room-strategies", strategies)) { S.hMsg = "storeFail"; render(); return; }
       S.hMsg = "";
+      render();
+      return;
+    }
+    if (e.target.closest("#plan-save")) {
+      var pn = S.planName.trim();
+      if (!pn || !S.gOpen) { S.planMsg = "planBad"; render(); return; }
+      var plans = readArr("sr-room-plans");
+      plans.push({ id: uid(), bot: S.gOpen, name: pn, note: S.planNote.trim() });
+      if (!writeArr("sr-room-plans", plans)) { S.planMsg = "storeFail"; render(); return; }
+      S.planName = ""; S.planNote = ""; S.planMsg = "";
+      render();
+      return;
+    }
+    var rmP = e.target.closest("[data-remove-plan]");
+    if (rmP) { writeArr("sr-room-plans", readArr("sr-room-plans").filter(function (r) { return r.id !== rmP.getAttribute("data-remove-plan"); })); render(); return; }
+    var ven = e.target.closest("[data-venue]");
+    if (ven) {
+      var vid = ven.getAttribute("data-venue");
+      var cur = readArr("sr-room-venues").filter(function (x) { return typeof x === "string"; });
+      var ix = cur.indexOf(vid);
+      if (ix === -1) cur.push(vid); else cur.splice(ix, 1);
+      if (!writeArr("sr-room-venues", cur)) { S.integMsg = "storeFail"; render(); return; }
+      S.integMsg = "";
+      render();
+      return;
+    }
+    if (e.target.closest("#ai-save")) {
+      var noteAi = S.aiText.trim();
+      if (!noteAi) { S.aiMsg = "aiBad"; render(); return; }
+      if (!lsSet("sr-room-ai", noteAi)) { S.aiMsg = "storeFail"; render(); return; }
+      S.aiMsg = "aiSaved";
+      render();
+      return;
+    }
+    var pricePick = e.target.closest("[data-price]");
+    if (pricePick) {
+      if (!lsSet("sr-room-price", pricePick.getAttribute("data-price"))) { S.priceMsg = "storeFail"; render(); return; }
+      S.priceMsg = "priceSaved";
       render();
       return;
     }
