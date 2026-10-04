@@ -1,44 +1,3 @@
-  function val(id, key) { var b = S.form[id]; return b && b[key] != null ? String(b[key]) : ""; }
-  function anyFilled(id, keys) { return keys.some(function (k) { return val(id, k).trim() !== ""; }); }
-  function errText(code) {
-    if (code === "range") return t("errRange");
-    if (code === "count") return t("errCount");
-    if (code === "pct") return t("errPct");
-    return t("errBad");
-  }
-  function stat(key, n) { return '<div class="stat"><dt>' + esc(t(key)) + "</dt><dd>" + mono(fmt(n)) + "</dd></div>"; }
-  function statPlain(key, html) { return '<div class="stat"><dt>' + esc(t(key)) + "</dt><dd>" + html + "</dd></div>"; }
-  function fset(id, pairs) {
-    return '<div class="fields">' + pairs.map(function (p) {
-      return '<label class="field"><span>' + esc(t(p[1])) + '</span><input data-bag="' + esc(id) + '" data-key="' + esc(p[0]) + '" value="' + esc(val(id, p[0])) + '" autocomplete="off" inputmode="decimal"></label>';
-    }).join("") + "</div>";
-  }
-  function gate(id, keys, runner, draw) {
-    if (!anyFilled(id, keys)) return '<p class="quiet">' + esc(t("awaitInput")) + "</p>";
-    var r = runner();
-    if (!r.ok) return '<p class="bad" role="alert">' + esc(errText(r.error)) + "</p>";
-    return draw(r);
-  }
-  function lineList(rows) { return '<ol class="hops scroll">' + rows.join("") + "</ol>"; }
-  function modesOf(card) {
-    var hasG = card.tags.indexOf("grid") !== -1;
-    var hasD = card.tags.indexOf("dca") !== -1;
-    if (hasG && !hasD) return ["grid"];
-    if (hasD && !hasG) return ["dca"];
-    return ["grid", "dca"];
-  }
-  function navHTML() {
-    return '<nav class="primary-nav">' + NAV.map(function (id) {
-      var on = window.SR.view === id || (id === "more" && MORE.indexOf(window.SR.view) !== -1);
-      var attr = on ? ' aria-current="page"' : "";
-      return '<button type="button" class="navitem" data-view="' + id + '"' + attr + ">" + esc(t("nav." + id)) + "</button>";
-    }).join("") + "</nav>";
-  }
-  function authHTML() {
-    var who = session();
-    var name = who ? '<button type="button" class="ghost who" data-view="login">' + esc(who.name) + "</button>" : "";
-    return '<div class="auth">' + name + '<button type="button" class="ghost" data-view="login">' + esc(t("login")) + '</button><button type="button" class="solid" data-view="signup">' + esc(t("signup")) + "</button></div>";
-  }
   function calcBody(spec) {
     var id = spec.bag;
     var kind = spec.kind;
@@ -124,3 +83,22 @@
       }, function (r) { return '<dl class="stats">' + stat("notional", r.notional) + "</dl>"; });
     }
     return "";
+  }
+  function smartBody() {
+    var id = "smart";
+    return '<p class="quiet">' + esc(t("smartNote")) + "</p>" + fset(id, [["entry", "smartEntry"], ["qty", "dexQty"], ["stop", "smartStop"], ["t1", "tp1"], ["p1", "tp1pct"], ["t2", "tp2"], ["p2", "tp2pct"], ["t3", "tp3"], ["p3", "tp3pct"]]) + gate(id, ["entry", "qty", "stop", "t1", "p1", "t2", "p2", "t3", "p3"], function () {
+      return window.SRCalc.smartCalc({
+        entry: val(id, "entry"), qty: val(id, "qty"), stop: val(id, "stop"),
+        steps: [{ price: val(id, "t1"), pct: val(id, "p1") }, { price: val(id, "t2"), pct: val(id, "p2") }, { price: val(id, "t3"), pct: val(id, "p3") }]
+      });
+    }, function (r) {
+      var rows = r.rows.map(function (o, i) {
+        return "<li>" + esc(t("tpStep")) + " " + mono(String(i + 1)) + " " + mono(fmt(o.price)) + " " + mono(fmt(o.pct)) + "% " + esc(t("taxGain")) + " " + mono(fmt(o.gain)) + "</li>";
+      }).join("");
+      var list = rows ? lineList([rows]) : '<p class="quiet">' + esc(t("noTp")) + "</p>";
+      return '<dl class="stats">' + stat("tpGain", r.realized) + stat("stopGain", r.stopGain) + stat("leftQty", r.leftQty) + "</dl>" + list;
+    });
+  }
+  function paperPanel(titleKey, inner, closeAttr) {
+    return '<div class="panel"><h2>' + esc(t(titleKey)) + '</h2><p class="banner">' + esc(t("paperLine")) + "</p>" + inner + '<div class="rowacts"><button type="button" class="ghost" ' + closeAttr + ">" + esc(t("closePanel")) + "</button></div></div>";
+  }
