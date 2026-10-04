@@ -51,3 +51,35 @@
   function ticketPage(opts) {
     var lev = opts.fut ? field("fut-lev", "levLabel", S.lev, 'inputmode="decimal"') : "";
     var bits = mono(S.pair) + " " + esc(t("side." + S.side)) + " " + esc(t("dexPrice")) + " " + mono(String(S.price).trim() || "—") + " " + esc(t("dexQty")) + " " + mono(String(S.qty).trim() || "—");
+    if (opts.fut) bits += " " + esc(t("levLabel")) + " " + mono(String(S.lev).trim() || "—");
+    var banner = opts.fut ? t("noFuturesOrder") : t("paperLine");
+    return '<section class="block"><h1>' + esc(t(opts.title)) + '</h1><p class="banner">' + esc(t("paperLine")) + "</p>"
+      + (opts.fut ? '<p class="banner">' + esc(t("noFuturesOrder")) + "</p>" : "")
+      + '<p class="quiet">' + esc(t(opts.lead)) + '</p><div class="modes">' + pairButtons() + "</div>"
+      + pills("side", S.side, [["buy", "side.buy"], ["sell", "side.sell"]])
+      + '<div class="fields">' + field("dex-price", "dexPrice", S.price, 'inputmode="decimal"') + field("dex-qty", "dexQty", S.qty, 'inputmode="decimal"') + lev + "</div>"
+      + '<div class="panel"><h2>' + esc(t("typedTicket")) + "</h2><p>" + bits + '</p><p class="banner">' + esc(banner) + "</p></div></section>";
+  }
+  function viewSpot() { return ticketPage({ title: "spotTitle", lead: "spotLead", fut: false }); }
+  function viewFutures() { return ticketPage({ title: "futTitle", lead: "futLead", fut: true }); }
+  function viewMarkets() {
+    var q = String(S.mq || "").trim().toLowerCase();
+    var rows = MARKETS.filter(function (m) {
+      var name = t("name." + m.asset);
+      if (q && (m.pair + "\n" + name).toLowerCase().indexOf(q) === -1) return false;
+      return hit([m.pair, name, m.price, String(m.pct), t("exampleTag")]);
+    });
+    var cards = rows.map(function (m) {
+      var cls = m.pct > 0 ? "up" : m.pct < 0 ? "down" : "";
+      var sign = m.pct > 0 ? "+" : "";
+      var on = S.pair === m.pair ? ' aria-pressed="true"' : ' aria-pressed="false"';
+      return '<button type="button" class="entitycard" data-pair="' + m.pair + '"' + on + '><div class="cardtop"><h3>' + esc(t("name." + m.asset)) + "</h3><span class=\"pill\">" + esc(t("exampleTag")) + "</span></div><div class=\"kv\"><span>" + mono(m.pair) + "</span></div><div class=\"kv\"><span>" + esc(t("mktLast")) + "</span><span>" + mono(m.price) + "</span></div><div class=\"kv\"><span>" + esc(t("mktChg")) + '</span><b class="' + cls + '">' + mono(sign + m.pct.toFixed(2) + "%") + "</b></div></button>";
+    }).join("");
+    var note = S.pairNote ? '<p role="status">' + esc(t(S.pairNote)) + " " + mono(S.pair) + '</p><div class="rowacts"><button type="button" class="solid" data-view="spot">' + esc(t("nav.spot")) + '</button><button type="button" class="ghost" data-view="futures">' + esc(t("nav.futures")) + "</button></div>" : "";
+    return '<section class="block"><h1>' + esc(t("mktTitle")) + '</h1><p class="quiet">' + esc(t("mktLead")) + "</p>"
+      + '<div class="fields">' + field("mkt-q", "mktSearch", S.mq, "") + "</div>"
+      + (qnorm() || q ? '<p class="quiet">' + esc(t("hits")) + " " + mono(String(rows.length)) + "</p>" : "")
+      + note
+      + (cards ? '<div class="dirgrid">' + cards + "</div>" : '<p class="quiet">' + esc(t("empty")) + "</p>") + "</section>";
+  }
+  function planForm(botId) {
