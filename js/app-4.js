@@ -224,3 +224,12 @@
     ]) + "</section>";
   }
   function viewSolutions() {
+    return '<section class="block"><h1>' + esc(t("solTitle")) + '</h1><p class="quiet">' + esc(t("solLead")) + "</p>" + linkGrid([
+      ["home", "sol.desk", "sol.deskLead"],
+      ["spot", "sol.spot", "sol.spotLead"],
+      ["bots", "sol.bots", "sol.botsLead"],
+      ["tax", "sol.tax", "sol.taxLead"],
+      ["alerts", "sol.alerts", "sol.alertsLead"],
+      ["tracer", "sol.trace", "sol.traceLead"]
+    ]) + "</section>";
+  }
