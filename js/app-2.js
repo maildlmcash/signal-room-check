@@ -75,3 +75,17 @@
       + '<div class="fields">' + field("label-addr", "labelAddr", S.labelAddr, "") + field("label-name", "labelName", S.labelName, "") + "</div>"
       + msg + '<button type="button" class="solid" id="label-add">' + esc(t("add")) + "</button>"
       + (rows.length ? '<ul class="nodes">' + list + "</ul>" : '<p class="quiet">' + esc(t("labelEmpty")) + "</p>") + "</section>";
+  }
+  function viewApi() {
+    var urls = ["apiEx.ping", "apiEx.time", "apiEx.info", "apiEx.price", "apiEx.bars"];
+    var rows = urls.filter(function (k) { return hit([t(k)]); });
+    var list = rows.map(function (k) { return "<li>" + mono(t(k)) + "</li>"; }).join("");
+    return '<section class="block"><h1>' + esc(t("apiTitle")) + '</h1><p class="quiet">' + esc(t("apiLead")) + "</p><p>" + esc(t("apiLimit")) + "</p><p>" + esc(t("apiWeight")) + "</p>"
+      + (rows.length ? '<ul class="nodes">' + list + "</ul>" : '<p class="quiet">' + esc(t("empty")) + "</p>") + "</section>";
+  }
+  function viewMore() {
+    var buttons = MORE.map(function (id) {
+      return '<button type="button" class="dircard" data-view="' + id + '"><strong>' + esc(t("moreItem." + id)) + "</strong></button>";
+    }).join("");
+    return '<section class="block"><h1>' + esc(t("moreTitle")) + '</h1><p class="quiet">' + esc(t("moreLead")) + "</p>" + held() + '<div class="dirgrid">' + buttons + "</div></section>";
+  }
