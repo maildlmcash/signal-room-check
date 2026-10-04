@@ -16,45 +16,6 @@
 <div id="app"></div>
 <script src="js/i18n.js"></script>
 <script src="js/chrome.js"></script>
-<script>
-(function () {
-  var t = function (k) { return window.SRX.t(k); };
-  var esc = function (s) { return window.SRX.esc(s); };
-  function render() {
-    window.SRX.applyDocument();
-    var m = window.SRX.mktState();
-    var px = m.price;
-    var head = "";
-    if (m.phase === "wait") head += '<p class="muted">' + esc(t("ex.waiting")) + "</p>";
-    if (px) head += '<p class="price-line ltr"><span class="num">' + esc(String(px)) + "</span> " + esc(t("ex.live")) + "</p>";
-    else if (m.phase === "done") head += '<p>' + esc(t("ex.pending")) + "</p>";
-    var empty = m.phase === "done" && (!m.candles || !m.candles.length) ? '<p class="muted">' + esc(t("ex.emptyChart")) + "</p>" : "";
-    document.getElementById("app").innerHTML = window.SRX.headerHTML({ href: "index.html" })
-      + '<div class="page-body"><div id="main" tabindex="-1" class="view"><h1>' + esc(t("admin.title")) + "</h1><p>" + esc(t("admin.lead")) + "</p>"
-      + '<section class="panel explorer"><div class="ex-top"><h2>' + esc(t("ex.pair")) + '</h2><span class="tf-label ltr">' + esc(t("ex.range")) + "</span></div>"
-      + head
-      + '<div class="chart-wrap"><canvas id="chart"></canvas></div>'
-      + empty
-      + '<div class="source"><h2>' + esc(t("api.sourceTitle")) + "</h2><p>" + esc(t("ex.sourceName")) + "</p><p>" + esc(t("api.explain")) + "</p>"
-      + '<p class="ltr">' + esc(t("api.ticker")) + "</p>"
-      + '<p class="ltr">' + esc(t("api.kline")) + "</p>"
-      + "<p>" + esc(t("api.limit")) + "</p><p>" + esc(t("api.weights")) + "</p>"
-      + window.SRX.errBlock(m.tickerStatus, m.tickerErr)
-      + window.SRX.errBlock(m.klineStatus, m.klineErr)
-      + '<button type="button" class="solid" id="refresh">' + esc(t("ex.refresh")) + "</button></div></section></div></div>";
-    window.SRX.drawCloses(document.getElementById("chart"), m.candles || []);
-    if (m.phase === "idle") window.SRX.loadBtc(false).then(render);
-  }
-  document.addEventListener("click", function (e) {
-    if (e.target.closest("#refresh")) {
-      window.SRX.loadBtc(true).then(render);
-      render();
-    }
-  });
-  window.SRX.initChrome();
-  window.SR.onChange = render;
-  render();
-})();
-</script>
+<script src="js/admin.js"></script>
 </body>
 </html>

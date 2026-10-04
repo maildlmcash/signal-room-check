@@ -16,31 +16,6 @@
 <div id="app"></div>
 <script src="js/i18n.js"></script>
 <script src="js/chrome.js"></script>
-<script>
-(function () {
-  var t = function (k) { return window.SRX.t(k); };
-  var esc = function (s) { return window.SRX.esc(s); };
-  window.SR.stopNoted = window.SR.stopNoted || false;
-  function render() {
-    window.SRX.applyDocument();
-    document.getElementById("app").innerHTML = window.SRX.headerHTML({ href: "index.html" })
-      + '<div class="page-body"><div id="main" tabindex="-1" class="view"><h1>' + esc(t("stop.title")) + "</h1><p>" + esc(t("stop.lead")) + "</p>"
-      + '<div class="stop-wrap"><button type="button" class="switch" id="arm" role="switch" aria-checked="false"><span class="knob"></span></button><span class="stop-off">' + esc(t("stop.off")) + "</span></div>"
-      + '<p id="stop-note">' + esc(window.SR.stopNoted ? t("stop.stays") : "") + "</p></div></div>";
-  }
-  document.addEventListener("click", function (e) {
-    var arm = e.target.closest("#arm");
-    if (!arm) return;
-    e.preventDefault();
-    window.SR.stopNoted = true;
-    arm.setAttribute("aria-checked", "false");
-    var note = document.getElementById("stop-note");
-    if (note) note.textContent = t("stop.stays");
-  });
-  window.SRX.initChrome();
-  window.SR.onChange = render;
-  render();
-})();
-</script>
+<script src="js/stop.js"></script>
 </body>
 </html>
