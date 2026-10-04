@@ -1,22 +1,3 @@
-  }
-  function smartBody() {
-    var id = "smart";
-    return '<p class="quiet">' + esc(t("smartNote")) + "</p>" + fset(id, [["entry", "smartEntry"], ["qty", "dexQty"], ["stop", "smartStop"], ["t1", "tp1"], ["p1", "tp1pct"], ["t2", "tp2"], ["p2", "tp2pct"], ["t3", "tp3"], ["p3", "tp3pct"]]) + gate(id, ["entry", "qty", "stop", "t1", "p1", "t2", "p2", "t3", "p3"], function () {
-      return window.SRCalc.smartCalc({
-        entry: val(id, "entry"), qty: val(id, "qty"), stop: val(id, "stop"),
-        steps: [{ price: val(id, "t1"), pct: val(id, "p1") }, { price: val(id, "t2"), pct: val(id, "p2") }, { price: val(id, "t3"), pct: val(id, "p3") }]
-      });
-    }, function (r) {
-      var rows = r.rows.map(function (o, i) {
-        return "<li>" + esc(t("tpStep")) + " " + mono(String(i + 1)) + " " + mono(fmt(o.price)) + " " + mono(fmt(o.pct)) + "% " + esc(t("taxGain")) + " " + mono(fmt(o.gain)) + "</li>";
-      }).join("");
-      var list = rows ? lineList([rows]) : '<p class="quiet">' + esc(t("noTp")) + "</p>";
-      return '<dl class="stats">' + stat("tpGain", r.realized) + stat("stopGain", r.stopGain) + stat("leftQty", r.leftQty) + "</dl>" + list;
-    });
-  }
-  function paperPanel(titleKey, inner, closeAttr) {
-    return '<div class="panel"><h2>' + esc(t(titleKey)) + '</h2><p class="banner">' + esc(t("paperLine")) + "</p>" + inner + '<div class="rowacts"><button type="button" class="ghost" ' + closeAttr + ">" + esc(t("closePanel")) + "</button></div></div>";
-  }
   function viewHome() {
     var cards = ENTITIES.filter(function (e) {
       return hit([t("name." + e.id), t("kind." + e.kind), e.id, e.value, e.hold, e.wallets, String(e.pct), t("exampleTag")]);
@@ -59,3 +40,10 @@
       + '</section><section class="block"><h2>' + esc(t("tokensTitle")) + '</h2><p class="quiet">' + esc(t("tokensNote")) + "</p>"
       + (tokens.length ? '<div class="stack">' + tokHTML + "</div>" : '<p class="quiet">' + esc(t("empty")) + "</p>")
       + "</section></div>";
+  }
+  function viewPred() {
+    var cats = pills("pred", S.pred, [["politics", "predCat.politics"], ["sports", "predCat.sports"], ["crypto", "predCat.crypto"]]);
+    var line = S.pred ? esc(t("predCat." + S.pred)) + " " + esc(t("predPicked")) : esc(t("predNone"));
+    var extra = qnorm() ? '<p class="quiet">' + esc(t("predQuery")) + ' <span class="isolate">' + esc(window.SR.q) + "</span></p>" : "";
+    return '<section class="block"><h1>' + esc(t("predTitle")) + '</h1><p class="banner">' + esc(t("predLead")) + "</p><p>" + line + "</p>" + extra + cats + "</section>";
+  }
