@@ -1,786 +1,665 @@
 (function () {
   var t = function (k) { return window.SRX.t(k); };
   var esc = function (s) { return window.SRX.esc(s); };
-  var SR = window.SR;
-
-  var CATALOG = [
-    { id: "btc", kind: "asset", ticker: "BTC", nameKey: "name.btc", netKey: "net.btc" },
-    { id: "eth", kind: "asset", ticker: "ETH", nameKey: "name.eth", netKey: "net.eth" },
-    { id: "sol", kind: "asset", ticker: "SOL", nameKey: "name.sol", netKey: "net.sol" },
-    { id: "xrp", kind: "asset", ticker: "XRP", nameKey: "name.xrp", netKey: "net.xrp" },
-    { id: "bnb", kind: "asset", ticker: "BNB", nameKey: "name.bnb", netKey: "net.bnb" },
-    { id: "doge", kind: "asset", ticker: "DOGE", nameKey: "name.doge", netKey: "net.doge" },
-    { id: "ada", kind: "asset", ticker: "ADA", nameKey: "name.ada", netKey: "net.ada" },
-    { id: "avax", kind: "asset", ticker: "AVAX", nameKey: "name.avax", netKey: "net.avax" },
-    { id: "link", kind: "asset", ticker: "LINK", nameKey: "name.link", netKey: "net.link" },
-    { id: "usdt", kind: "asset", ticker: "USDT", nameKey: "name.usdt", netKey: "net.usdt" },
-    { id: "binance", kind: "venue", ticker: "", nameKey: "name.binance", netKey: "net.venue" },
-    { id: "bybit", kind: "venue", ticker: "", nameKey: "name.bybit", netKey: "net.venue" },
-    { id: "coinbase", kind: "venue", ticker: "", nameKey: "name.coinbase", netKey: "net.venue" },
-    { id: "okx", kind: "venue", ticker: "", nameKey: "name.okx", netKey: "net.venue" },
-    { id: "kraken", kind: "venue", ticker: "", nameKey: "name.kraken", netKey: "net.venue" }
+  var EX = "bc1qsignalroomexample00000000000000000000";
+  var PAIRS = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT", "AVAXUSDT", "LINKUSDT"];
+  var ENTITIES = [
+    { id: "btc", kind: "asset", pct: 1.24 },
+    { id: "eth", kind: "asset", pct: -0.62 },
+    { id: "sol", kind: "asset", pct: 3.05 },
+    { id: "bnb", kind: "asset", pct: 0.41 },
+    { id: "xrp", kind: "asset", pct: -1.1 },
+    { id: "binance", kind: "venue", pct: 0.18 },
+    { id: "coinbase", kind: "venue", pct: -0.27 },
+    { id: "kraken", kind: "venue", pct: 0.09 }
   ];
+  var XFERS = [
+    { from: "ex.alpha", to: "ex.desk", val: "0.50", token: "BTC", usd: "24000" },
+    { from: "ex.desk", to: "ex.beta", val: "12", token: "ETH", usd: "18000" },
+    { from: "ex.beta", to: "ex.alpha", val: "5000", token: "USDT", usd: "5000" },
+    { from: "ex.alpha", to: "ex.desk", val: "40", token: "SOL", usd: "3200" },
+    { from: "ex.desk", to: "ex.beta", val: "2.5", token: "BNB", usd: "1500" }
+  ];
+  var NODES = [
+    { id: "alpha", kind: "wallet", links: ["desk"] },
+    { id: "desk", kind: "desk", links: ["alpha", "beta"] },
+    { id: "beta", kind: "wallet", links: ["desk"] },
+    { id: "addr", kind: "address", links: ["beta"] }
+  ];
+  var HOPS = [["ex.alpha", "ex.desk"], ["ex.desk", "ex.beta"], ["ex.beta", "ex.addr"]];
+  var NAV = ["dex", "predictions", "tracer", "visualizer", "alerts", "labels", "api", "more"];
+  var focus = { id: null, pos: null };
+  var restore = false;
+  var S = {
+    pred: "",
+    trace: "",
+    pair: "BTCUSDT",
+    side: "buy",
+    price: "",
+    qty: "",
+    blotter: [],
+    ticket: "",
+    alertAsset: "",
+    alertDir: "above",
+    alertLevel: "",
+    alertCheck: "",
+    alertMsg: "",
+    labelAddr: "",
+    labelName: "",
+    labelMsg: "",
+    lotDate: "",
+    lotAsset: "",
+    lotSide: "buy",
+    lotQty: "",
+    lotPrice: "",
+    taxAsset: "all",
+    taxMsg: "",
+    authName: "",
+    authMsg: "",
+    cmp: {
+      A: blankBot(),
+      B: blankBot()
+    }
+  };
 
-  function entity(id) {
-    for (var i = 0; i < CATALOG.length; i++) if (CATALOG[i].id === id) return CATALOG[i];
-    return null;
+  function blankBot() {
+    return { lower: "", upper: "", count: "", quote: "", start: "", base: "", safety: "", drop: "", scale: "" };
   }
-  function kindKey(e) { return e && e.kind === "venue" ? "kind.venue" : "kind.asset"; }
-  function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+  function lsGet(key) {
+    try { return localStorage.getItem(key); } catch (e) { return null; }
+  }
+  function lsSet(key, value) {
+    try { localStorage.setItem(key, value); return true; } catch (e) { return false; }
+  }
   function readArr(key) {
     try {
-      var v = JSON.parse(localStorage.getItem(key) || "[]");
+      var v = JSON.parse(lsGet(key) || "[]");
       return Array.isArray(v) ? v : [];
     } catch (e) { return []; }
   }
-  function writeArr(key, v) {
-    try { localStorage.setItem(key, JSON.stringify(v)); } catch (e) {}
+  function writeArr(key, rows) {
+    return lsSet(key, JSON.stringify(rows));
   }
-  function readObj(key) {
+  function session() {
     try {
-      var v = JSON.parse(localStorage.getItem(key) || "{}");
-      return v && typeof v === "object" && !Array.isArray(v) ? v : {};
-    } catch (e) { return {}; }
+      var v = JSON.parse(lsGet("sr-room-session") || "null");
+      if (v && typeof v.name === "string" && v.name) return v;
+    } catch (e) {}
+    return null;
   }
-  function writeObj(key, v) {
-    try { localStorage.setItem(key, JSON.stringify(v)); } catch (e) {}
+  function uid() { return String(Date.now()) + "-" + String(Math.floor(Math.random() * 1000000)); }
+  function num(v) {
+    if (typeof v === "string" && v.trim() === "") return NaN;
+    return Number(v);
   }
-  function freshForm() {
-    return {
-      grid: { lower: "", upper: "", count: "", quote: "" },
-      dca: { start: "", base: "", safety: "", drop: "", scale: "" },
-      xfer: { time: "", from: "", to: "", asset: "", amount: "" },
-      tax: { date: "", asset: "", side: "buy", qty: "", price: "" },
-      alert: { asset: "btc", dir: "above", level: "" },
-      pos: { price: "", qty: "", fee: "" }
-    };
-  }
-  function setPath(obj, path, value) {
-    var parts = path.split(".");
-    var node = obj;
-    for (var i = 0; i < parts.length - 1; i++) node = node[parts[i]];
-    node[parts[parts.length - 1]] = value;
-  }
-  function val(path) {
-    var parts = path.split(".");
-    var node = SR.form;
-    for (var i = 0; i < parts.length; i++) node = node[parts[i]];
-    return esc(node == null ? "" : node);
-  }
-  function qtext() { return (SR.q || "").trim().toLowerCase(); }
   function fmt(n) {
     if (!isFinite(n)) return "—";
-    var neg = n < 0;
-    var a = Math.abs(n);
-    var s = a === 0 ? "0" : a >= 1000 ? a.toFixed(2) : a >= 1 ? a.toFixed(4) : a.toFixed(8);
-    s = s.replace(/(\.\d*?)0+$/, "$1").replace(/\.$/, "");
-    return (neg ? "-" : "") + s;
+    var s = n.toFixed(8);
+    if (s.indexOf(".") >= 0) s = s.replace(/0+$/, "").replace(/\.$/, "");
+    return s;
   }
-  function numHTML(n) { return '<span class="num" dir="ltr">' + esc(fmt(n)) + "</span>"; }
-  function gainHTML(n) {
-    var cls = n > 0 ? "up" : n < 0 ? "down" : "";
-    return '<span class="num ' + cls + '" dir="ltr">' + esc(fmt(n)) + "</span>";
+  function mono(s) { return '<span class="num" dir="ltr">' + esc(s) + "</span>"; }
+  function qnorm() { return String(window.SR.q || "").trim().toLowerCase(); }
+  function hit(parts) {
+    var q = qnorm();
+    if (!q) return true;
+    return parts.join("\n").toLowerCase().indexOf(q) !== -1;
   }
-  function pctHTML(n) { return '<span class="num" dir="ltr">' + esc(fmt(n)) + "%</span>"; }
-  function stat(label, valueHTML) {
-    return "<div><dt>" + esc(label) + "</dt><dd>" + valueHTML + "</dd></div>";
+  function field(id, label, value, extra) {
+    return '<label class="field"><span>' + esc(t(label)) + '</span><input id="' + id + '" value="' + esc(value) + '" autocomplete="off" ' + (extra || "") + "></label>";
   }
-  function anyFilled(obj) {
-    var keys = Object.keys(obj);
-    for (var i = 0; i < keys.length; i++) if (String(obj[keys[i]]).trim() !== "") return true;
-    return false;
+  function pills(kind, current, items) {
+    return '<div class="modes" role="group">' + items.map(function (it) {
+      var on = current === it[0] ? ' aria-pressed="true"' : ' aria-pressed="false"';
+      return '<button type="button" data-' + kind + '="' + esc(it[0]) + '"' + on + ">" + esc(t(it[1])) + "</button>";
+    }).join("") + "</div>";
+  }
+  function searchBox(id, klass) {
+    return '<div class="' + klass + '" role="search"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.2" fill="none" stroke="currentColor"/><path d="M10.2 10.2 14 14" stroke="currentColor"/></svg><input id="' + id + '" type="search" autocomplete="off" spellcheck="false" placeholder="' + esc(t("searchPlaceholder")) + '" aria-label="' + esc(t("searchLabel")) + '" value="' + esc(window.SR.q || "") + '"></div>';
+  }
+  function held() {
+    if (!qnorm()) return "";
+    return '<p class="quiet">' + esc(t("searchHeld")) + " " + '<span class="isolate">' + esc(window.SR.q) + "</span></p>";
+  }
+  function navHTML() {
+    var moreOn = window.SR.view === "more" || window.SR.view === "tax" || window.SR.view === "bots" || window.SR.view === "compare";
+    return '<nav class="primary-nav">' + NAV.map(function (id) {
+      var on = (id === "more" ? moreOn : window.SR.view === id) ? ' aria-current="page"' : "";
+      return '<button type="button" class="navitem" data-view="' + id + '"' + on + ">" + esc(t("nav." + id)) + "</button>";
+    }).join("") + "</nav>";
+  }
+  function authHTML() {
+    var who = session();
+    var name = who ? '<button type="button" class="ghost who" data-view="login">' + esc(who.name) + "</button>" : "";
+    return '<div class="auth">' + name
+      + '<button type="button" class="ghost" data-view="login">' + esc(t("login")) + "</button>"
+      + '<button type="button" class="solid" data-view="signup">' + esc(t("signup")) + "</button></div>";
+  }
+  function crumb() {
+    return '<p class="crumb"><button type="button" class="textish" data-view="more">' + esc(t("nav.more")) + "</button></p>";
   }
   function errText(code) {
     if (code === "range") return t("errRange");
     if (code === "count") return t("errCount");
     return t("errBad");
   }
-  function matchEntity(e, q) {
-    if (!q) return true;
-    var blob = [t(e.nameKey), t(e.netKey), t(kindKey(e)), e.ticker, e.id].join(" ").toLowerCase();
-    return blob.indexOf(q) !== -1;
+  function emptyBot(b, keys) {
+    return keys.every(function (k) { return String(b[k]).trim() === ""; });
   }
-  function tagHTML(e) {
-    var html = '<span class="tag">' + esc(t(kindKey(e))) + '</span><span class="tag">' + esc(t("tag.major")) + "</span>";
-    if (e.ticker) html += '<span class="tag ltr" dir="ltr">' + esc(e.ticker) + "</span>";
-    return html;
-  }
-  function cardHTML(e) {
-    var on = SR.openId === e.id;
-    var tickerFig = e.ticker
-      ? '<b class="ltr" dir="ltr">' + esc(e.ticker) + "</b>"
-      : "<b>" + esc(t("noTicker")) + "</b>";
-    return '<button type="button" class="tcard" data-open="' + esc(e.id) + '" aria-pressed="' + (on ? "true" : "false") + '">'
-      + "<h3>" + esc(t(e.nameKey)) + "</h3>"
-      + '<p class="tags">' + tagHTML(e) + "</p>"
-      + '<p class="meta"><span>' + esc(t("detailNet")) + "</span><b>" + esc(t(e.netKey)) + "</b></p>"
-      + '<p class="meta"><span>' + esc(t("tokTicker")) + "</span>" + tickerFig + "</p></button>";
-  }
-  function detailHTML(e) {
-    var actions = '<button type="button" data-act="open-x" data-dest="transfers" data-id="' + esc(e.id) + '">' + esc(t("actTransfers")) + "</button>";
-    if (e.kind === "asset") {
-      actions += '<button type="button" data-act="open-x" data-dest="tokens" data-id="' + esc(e.id) + '">' + esc(t("actToken")) + "</button>";
-      actions += '<button type="button" data-act="open-x" data-dest="bots" data-id="' + esc(e.id) + '">' + esc(t("actBot")) + "</button>";
-    }
-    return '<section class="detail"><h2>' + esc(t(e.nameKey)) + "</h2>"
-      + '<p class="tags">' + tagHTML(e) + "</p>"
-      + '<p class="meta"><span>' + esc(t("detailKind")) + "</span><b>" + esc(t(kindKey(e))) + "</b></p>"
-      + '<p class="meta"><span>' + esc(t("detailNet")) + "</span><b>" + esc(t(e.netKey)) + "</b></p>"
-      + "<h3>" + esc(t("next")) + '</h3><div class="actions">' + actions + "</div></section>";
-  }
-  function homeStage() {
-    var q = qtext();
-    var list = CATALOG.filter(function (e) { return matchEntity(e, q); });
-    var head = '<p class="muted">' + esc(t("hits")) + " " + numHTML(list.length) + "</p>";
-    if (!list.length) return head + '<p class="muted">' + esc(t("empty")) + "</p>";
-    var open = entity(SR.openId);
-    var detail = open && matchEntity(open, q) ? detailHTML(open) : "";
-    return head + '<div class="tcards">' + list.map(cardHTML).join("") + "</div>" + detail;
-  }
-  function pinHTML() {
-    if (!SR.pin) return "";
-    var e = entity(SR.pin);
-    if (!e) return "";
-    var tick = e.ticker ? ' <span class="ltr" dir="ltr">' + esc(e.ticker) + "</span>" : "";
-    return '<p class="pin"><span>' + esc(t("filteredTo")) + "</span> <b>" + esc(t(e.nameKey)) + "</b>" + tick
-      + ' <button type="button" class="text-btn" data-act="clear-pin">' + esc(t("remove")) + "</button></p>";
-  }
-  function matchXfer(r, q) {
-    var blob = [r.time, r.from, r.to, r.asset, r.amount].join(" ").toLowerCase();
-    if (q && blob.indexOf(q) === -1) return false;
-    if (!SR.pin) return true;
-    var e = entity(SR.pin);
-    if (!e) return true;
-    var name = t(e.nameKey).toLowerCase();
-    var tick = (e.ticker || "").toLowerCase();
-    if (tick && blob.indexOf(tick) !== -1) return true;
-    if (name && blob.indexOf(name) !== -1) return true;
-    if (blob.indexOf(String(e.id).toLowerCase()) !== -1) return true;
-    return false;
-  }
-  function xferRows() {
-    var q = qtext();
-    var rows = readArr("sr-transfers").filter(function (r) { return matchXfer(r, q); });
-    var key = SR.xferSort.key;
-    var dir = SR.xferSort.dir;
-    rows.sort(function (a, b) {
-      var c = 0;
-      if (key === "amount") c = Number(a.amount) - Number(b.amount);
-      else c = String(a.time).localeCompare(String(b.time));
-      if (c === 0) c = String(a.id).localeCompare(String(b.id));
-      return c * dir;
-    });
-    return rows;
-  }
-  function sortMark(key) {
-    if (SR.xferSort.key !== key) return "";
-    return SR.xferSort.dir < 0 ? " ↓" : " ↑";
-  }
-  function sortHTML() {
-    function btn(key, label) {
-      var on = SR.xferSort.key === key;
-      return '<button type="button" data-sort="' + key + '" data-label="' + esc(t(label)) + '" aria-pressed="' + (on ? "true" : "false") + '">' + esc(t(label)) + esc(sortMark(key)) + "</button>";
-    }
-    return '<div class="chips" role="group" aria-label="' + esc(t("sortLabel")) + '">' + btn("time", "sortTime") + btn("amount", "sortAmount") + "</div>";
-  }
-  function xferForm() {
-    var editing = !!SR.editXfer;
-    return '<form data-form="xfer" class="card"><div class="fields">'
-      + '<label class="field"><span>' + esc(t("col.time")) + '</span><input id="xf-time" data-bind="xfer.time" type="datetime-local" class="ltr" dir="ltr" value="' + val("xfer.time") + '"></label>'
-      + '<label class="field"><span>' + esc(t("col.from")) + '</span><input id="xf-from" data-bind="xfer.from" autocomplete="off" value="' + val("xfer.from") + '"></label>'
-      + '<label class="field"><span>' + esc(t("col.to")) + '</span><input id="xf-to" data-bind="xfer.to" autocomplete="off" value="' + val("xfer.to") + '"></label>'
-      + '<label class="field"><span>' + esc(t("col.asset")) + '</span><input id="xf-asset" data-bind="xfer.asset" class="ltr" dir="ltr" autocomplete="off" value="' + val("xfer.asset") + '"></label>'
-      + '<label class="field"><span>' + esc(t("col.amount")) + '</span><input id="xf-amount" data-bind="xfer.amount" inputmode="decimal" class="ltr" dir="ltr" autocomplete="off" value="' + val("xfer.amount") + '"></label>'
-      + '</div><p id="form-msg" class="err" role="alert"></p><div class="actions">'
-      + '<button type="submit" class="solid">' + esc(editing ? t("save") : t("add")) + "</button>"
-      + (editing ? '<button type="button" class="text-btn" data-act="cancel-x">' + esc(t("cancel")) + "</button>" : "")
-      + "</div></form>";
-  }
-  function xferStage() {
-    var rows = xferRows();
-    if (!rows.length) return '<p class="muted">' + esc(t("empty")) + "</p>";
-    var body = rows.map(function (r) {
-      var when = String(r.time || "").replace("T", " ");
-      return "<tr><td><span class=\"ltr\" dir=\"ltr\">" + esc(when) + "</span></td><td class=\"isolate\">" + esc(r.from) + "</td><td class=\"isolate\">" + esc(r.to) + "</td><td class=\"isolate\">" + esc(r.asset) + "</td><td>" + numHTML(Number(r.amount)) + "</td>"
-        + '<td class="row-actions"><button type="button" class="text-btn" data-act="edit-x" data-id="' + esc(r.id) + '">' + esc(t("edit")) + '</button><button type="button" class="text-btn" data-act="del-x" data-id="' + esc(r.id) + '">' + esc(t("remove")) + "</button></td></tr>";
+  function gridOut(b) {
+    if (emptyBot(b, ["lower", "upper", "count", "quote"])) return '<p class="quiet">' + esc(t("awaitInput")) + "</p>";
+    var r = window.SRCalc.gridCalc({ lower: b.lower, upper: b.upper, count: b.count, quote: b.quote });
+    if (!r.ok) return '<p class="bad" role="alert">' + esc(errText(r.error)) + "</p>";
+    var stats = '<dl class="stats">'
+      + stat("gridStep", r.step) + stat("quoteLine", r.quotePerLine) + stat("profitPct", r.profitPct) + stat("lines", r.lines.length)
+      + "</dl>";
+    var lines = r.lines.map(function (n, i) {
+      return "<li>" + esc(t("gridLine")) + " " + mono(String(i + 1)) + " " + mono(fmt(n)) + "</li>";
     }).join("");
-    var sums = {};
-    var order = [];
-    rows.forEach(function (r) {
-      var asset = String(r.asset);
-      if (!Object.prototype.hasOwnProperty.call(sums, asset)) { sums[asset] = 0; order.push(asset); }
-      sums[asset] += Number(r.amount);
-    });
-    var totals = order.map(function (asset) {
-      return '<tr><td class="isolate">' + esc(asset) + "</td><td>" + numHTML(sums[asset]) + "</td></tr>";
-    }).join("");
-    return '<div class="table-scroll"><table class="sheet"><thead><tr><th>' + esc(t("col.time")) + "</th><th>" + esc(t("col.from")) + "</th><th>" + esc(t("col.to")) + "</th><th>" + esc(t("col.asset")) + "</th><th>" + esc(t("col.amount")) + "</th><th>" + esc(t("rowActions")) + "</th></tr></thead><tbody>"
-      + body + "</tbody></table></div><h2>" + esc(t("total")) + '</h2><table class="sheet totals"><thead><tr><th>' + esc(t("col.asset")) + "</th><th>" + esc(t("col.amount")) + "</th></tr></thead><tbody>" + totals + "</tbody></table>";
+    return stats + '<ol class="hops scroll">' + lines + "</ol>";
   }
-  function blankXfer() { SR.editXfer = ""; SR.form.xfer = { time: "", from: "", to: "", asset: "", amount: "" }; }
-  function saveXfer() {
-    var row = {
-      time: document.getElementById("xf-time").value.trim(),
-      from: document.getElementById("xf-from").value.trim(),
-      to: document.getElementById("xf-to").value.trim(),
-      asset: document.getElementById("xf-asset").value.trim(),
-      amount: document.getElementById("xf-amount").value.trim()
-    };
-    var n = Number(row.amount);
-    if (!row.time || !row.from || !row.to || !row.asset || !isFinite(n) || !(n > 0)) {
-      var msg = document.getElementById("form-msg");
-      if (msg) msg.textContent = t("badRow");
-      return;
-    }
-    var list = readArr("sr-transfers");
-    if (SR.editXfer) {
-      list = list.map(function (r) {
-        if (r.id !== SR.editXfer) return r;
-        return { id: r.id, time: row.time, from: row.from, to: row.to, asset: row.asset, amount: n };
-      });
-    } else {
-      list.push({ id: uid(), time: row.time, from: row.from, to: row.to, asset: row.asset, amount: n });
-    }
-    writeArr("sr-transfers", list);
-    blankXfer();
-    render(false);
-  }
-  function tokenMetaHTML() {
-    if (!SR.tokenId) return '<p class="muted">' + esc(t("pickToken")) + "</p>";
-    var e = entity(SR.tokenId);
-    if (!e) return '<p class="muted">' + esc(t("pickToken")) + "</p>";
-    return "<h2>" + esc(t(e.nameKey)) + "</h2>"
-      + '<p class="meta"><span>' + esc(t("tokChain")) + "</span><b>" + esc(t(e.netKey)) + "</b></p>"
-      + '<p class="meta"><span>' + esc(t("tokTicker")) + '</span><b class="ltr" dir="ltr">' + esc(e.ticker) + "</b></p>";
-  }
-  function tokenStage() {
-    var q = qtext();
-    var list = CATALOG.filter(function (e) { return e.kind === "asset" && matchEntity(e, q); });
-    if (!list.length) return '<p class="muted">' + esc(t("empty")) + "</p>";
-    return '<div class="token-list">' + list.map(function (e) {
-      var on = SR.tokenId === e.id;
-      return '<button type="button" class="token-btn" data-token="' + esc(e.id) + '" aria-pressed="' + (on ? "true" : "false") + '"><span>' + esc(t(e.nameKey)) + '</span><span class="ltr" dir="ltr">' + esc(e.ticker) + "</span></button>";
-    }).join("") + "</div>";
-  }
-  function posOut() {
-    if (!SR.tokenId) return '<p class="muted">' + esc(t("pickToken")) + "</p>";
-    var ps = String(SR.form.pos.price).trim();
-    var qs = String(SR.form.pos.qty).trim();
-    var fs = String(SR.form.pos.fee).trim();
-    if (!ps && !qs && !fs) return '<p class="muted">' + esc(t("awaitInput")) + "</p>";
-    var price = Number(ps);
-    var qty = Number(qs);
-    var fee = fs === "" ? 0 : Number(fs);
-    if (!ps || !qs || (ps && !isFinite(price)) || (qs && !isFinite(qty)) || !isFinite(fee) || (ps && price < 0) || (qs && qty < 0) || fee < 0 || fee > 100) {
-      if (!ps || !qs) {
-        if ((ps && !isFinite(price)) || (qs && !isFinite(qty)) || (fs && (!isFinite(fee) || fee < 0 || fee > 100))) {
-          return '<p class="err" role="alert">' + esc(t("badCalc")) + "</p>";
-        }
-        return '<p class="muted">' + esc(t("awaitInput")) + "</p>";
-      }
-      return '<p class="err" role="alert">' + esc(t("badCalc")) + "</p>";
-    }
-    var notional = price * qty;
-    var feeVal = notional * (fee / 100);
-    if (!isFinite(notional) || !isFinite(feeVal)) return '<p class="err" role="alert">' + esc(t("badCalc")) + "</p>";
-    return '<dl class="stats">' + stat(t("notional"), numHTML(notional)) + stat(t("feeOut"), numHTML(feeVal)) + "</dl>";
-  }
-  function saveTokenPrice() {
-    if (!SR.tokenId) return;
-    if (String(SR.form.pos.price).trim() === "") return;
-    var n = Number(SR.form.pos.price);
-    if (!isFinite(n) || n < 0) return;
-    var map = readObj("sr-prices");
-    map[SR.tokenId] = String(n);
-    writeObj("sr-prices", map);
-  }
-  function numField(labelKey, id, bind) {
-    return '<label class="field"><span>' + esc(t(labelKey)) + '</span><input id="' + id + '" data-bind="' + bind + '" inputmode="decimal" class="ltr" dir="ltr" autocomplete="off" value="' + val(bind) + '"></label>';
-  }
-  function gridFields() {
-    return '<div class="fields">'
-      + numField("gridLower", "grid-lower", "grid.lower")
-      + numField("gridUpper", "grid-upper", "grid.upper")
-      + numField("gridCount", "grid-count", "grid.count")
-      + numField("gridQuote", "grid-quote", "grid.quote")
-      + "</div>";
-  }
-  function dcaFields() {
-    return '<div class="fields">'
-      + numField("dcaStart", "dca-start", "dca.start")
-      + numField("dcaBase", "dca-base", "dca.base")
-      + numField("dcaSafety", "dca-safety", "dca.safety")
-      + numField("dcaDrop", "dca-drop", "dca.drop")
-      + numField("dcaScale", "dca-scale", "dca.scale")
-      + "</div>";
-  }
-  function allFilled(obj) {
-    var keys = Object.keys(obj);
-    for (var i = 0; i < keys.length; i++) if (String(obj[keys[i]]).trim() === "") return false;
-    return keys.length > 0;
-  }
-  function gridOut() {
-    if (!allFilled(SR.form.grid)) return '<p class="muted">' + esc(t("awaitInput")) + "</p>";
-    var r = window.SRCalc.gridCalc(SR.form.grid);
-    if (!r.ok) return '<p class="err" role="alert">' + esc(errText(r.error)) + "</p>";
-    var rows = r.lines.map(function (price, i) {
-      return "<tr><td>" + numHTML(i + 1) + "</td><td>" + numHTML(price) + "</td></tr>";
-    }).join("");
-    return '<dl class="stats">' + stat(t("gridStep"), numHTML(r.step)) + stat(t("quoteLine"), numHTML(r.quotePerLine)) + stat(t("profitPct"), pctHTML(r.profitPct)) + "</dl>"
-      + "<h3>" + esc(t("lines")) + '</h3><div class="table-scroll"><table class="sheet"><thead><tr><th>' + esc(t("col.index")) + "</th><th>" + esc(t("gridLine")) + "</th></tr></thead><tbody>" + rows + "</tbody></table></div>";
-  }
-  function dcaOut() {
-    if (!allFilled(SR.form.dca)) return '<p class="muted">' + esc(t("awaitInput")) + "</p>";
-    var r = window.SRCalc.dcaCalc(SR.form.dca);
-    if (!r.ok) return '<p class="err" role="alert">' + esc(errText(r.error)) + "</p>";
+  function dcaOut(b) {
+    if (emptyBot(b, ["start", "base", "safety", "drop", "scale"])) return '<p class="quiet">' + esc(t("awaitInput")) + "</p>";
+    var r = window.SRCalc.dcaCalc({ start: b.start, base: b.base, safety: b.safety, drop: b.drop, scale: b.scale });
+    if (!r.ok) return '<p class="bad" role="alert">' + esc(errText(r.error)) + "</p>";
+    var stats = '<dl class="stats">' + stat("totalQuote", r.totalQuote) + stat("avgEntry", r.avg) + stat("orders", r.orders.length) + "</dl>";
     var rows = r.orders.map(function (o, i) {
-      var name = i === 0 ? esc(t("baseName")) : esc(t("safetyName")) + " " + numHTML(i);
-      return "<tr><td>" + name + "</td><td>" + numHTML(o.price) + "</td><td>" + numHTML(o.quote) + "</td></tr>";
+      var name = o.safety ? t("safetyName") : t("baseName");
+      return "<li>" + esc(name) + " " + mono(String(i)) + " " + esc(t("orderPrice")) + " " + mono(fmt(o.price))
+        + " " + esc(t("orderQuote")) + " " + mono(fmt(o.quote)) + " " + esc(t("orderQty")) + " " + mono(fmt(o.qty)) + "</li>";
     }).join("");
-    return '<dl class="stats">' + stat(t("totalQuote"), numHTML(r.totalQuote)) + stat(t("avgEntry"), numHTML(r.avg)) + "</dl>"
-      + "<h3>" + esc(t("orders")) + '</h3><div class="table-scroll"><table class="sheet"><thead><tr><th>' + esc(t("orders")) + "</th><th>" + esc(t("orderPrice")) + "</th><th>" + esc(t("orderQuote")) + "</th></tr></thead><tbody>" + rows + "</tbody></table></div>";
+    return stats + '<ol class="hops scroll">' + rows + "</ol>";
   }
-  function presetHTML() {
-    if (!SR.presetId) return "";
-    var e = entity(SR.presetId);
-    if (!e) return "";
-    var saved = readObj("sr-prices")[e.id];
-    var extra = saved == null || saved === "" ? '<p class="muted">' + esc(t("presetEmpty")) + "</p>" : "";
-    var tick = e.ticker ? ' <span class="ltr" dir="ltr">' + esc(e.ticker) + "</span>" : "";
-    return '<p class="pin"><span>' + esc(t("presetFor")) + "</span> <b>" + esc(t(e.nameKey)) + "</b>" + tick + "</p>" + extra;
+  function stat(key, n) {
+    return "<div class=\"stat\"><dt>" + esc(t(key)) + "</dt><dd>" + mono(fmt(n)) + "</dd></div>";
   }
-  function modeBtn(mode, key) {
-    var on = SR.botMode === mode;
-    return '<button type="button" data-bot="' + mode + '" aria-pressed="' + (on ? "true" : "false") + '">' + esc(t(key)) + "</button>";
+  function gridFields(prefix, b) {
+    return '<div class="fields">'
+      + field(prefix + "-lower", "gridLower", b.lower, 'inputmode="decimal"')
+      + field(prefix + "-upper", "gridUpper", b.upper, 'inputmode="decimal"')
+      + field(prefix + "-count", "gridCount", b.count, 'inputmode="numeric"')
+      + field(prefix + "-quote", "gridQuote", b.quote, 'inputmode="decimal"')
+      + "</div>" + gridOut(b);
   }
-  function applyPreset(id) {
-    var e = entity(id);
-    if (!e || e.kind !== "asset") return;
-    SR.presetId = id;
-    SR.botMode = "grid";
-    var saved = readObj("sr-prices")[id];
-    var p = Number(saved);
-    if (saved != null && saved !== "" && isFinite(p) && p > 0) {
-      SR.form.grid.lower = fmt(p * 0.95);
-      SR.form.grid.upper = fmt(p * 1.05);
-      if (!String(SR.form.grid.count).trim()) SR.form.grid.count = "8";
-    }
+  function dcaFields(prefix, b) {
+    return '<div class="fields">'
+      + field(prefix + "-start", "dcaStart", b.start, 'inputmode="decimal"')
+      + field(prefix + "-base", "dcaBase", b.base, 'inputmode="decimal"')
+      + field(prefix + "-safety", "dcaSafety", b.safety, 'inputmode="numeric"')
+      + field(prefix + "-drop", "dcaDrop", b.drop, 'inputmode="decimal"')
+      + field(prefix + "-scale", "dcaScale", b.scale, 'inputmode="decimal"')
+      + "</div>" + dcaOut(b);
   }
-  function taxScoped() {
-    return readArr("sr-tax").filter(function (r) {
-      return !SR.taxAsset || r.asset === SR.taxAsset;
+  function scoreGrid(b) {
+    if (emptyBot(b, ["lower", "upper", "count", "quote"])) return null;
+    var r = window.SRCalc.gridCalc({ lower: b.lower, upper: b.upper, count: b.count, quote: b.quote });
+    return r.ok ? r.profitPct : null;
+  }
+  function scoreDca(b) {
+    if (emptyBot(b, ["start", "base", "safety", "drop", "scale"])) return null;
+    var r = window.SRCalc.dcaCalc({ start: b.start, base: b.base, safety: b.safety, drop: b.drop, scale: b.scale });
+    return r.ok ? r.totalQuote : null;
+  }
+  function near(a, b) {
+    return Math.abs(a - b) <= 1e-8 * Math.max(1, Math.abs(a), Math.abs(b));
+  }
+  function verdict(a, b) {
+    if (a == null || b == null) return t("largerNone");
+    if (near(a, b)) return t("largerSame");
+    return a > b ? t("largerLeft") : t("largerRight");
+  }
+  function costReport(lots) {
+    var groups = {};
+    lots.forEach(function (lot) {
+      if (!groups[lot.asset]) groups[lot.asset] = [];
+      groups[lot.asset].push(lot);
     });
-  }
-  function taxMatch(r, q) {
-    if (!q) return true;
-    var side = r.side === "sell" ? t("side.sell") : t("side.buy");
-    var blob = [r.date, r.asset, side, r.side, r.qty, r.price].join(" ").toLowerCase();
-    return blob.indexOf(q) !== -1;
-  }
-  function fifo(rows) {
-    var by = {};
-    rows.forEach(function (r) {
-      var k = String(r.asset);
-      if (!by[k]) by[k] = [];
-      by[k].push(r);
-    });
-    var proceeds = 0;
-    var cost = 0;
-    var unmatched = 0;
-    Object.keys(by).forEach(function (asset) {
-      var lots = [];
-      var list = by[asset].slice().sort(function (a, b) {
-        var c = String(a.date).localeCompare(String(b.date));
-        if (c === 0) c = String(a.id).localeCompare(String(b.id));
-        return c;
+    var out = {};
+    Object.keys(groups).sort().forEach(function (asset) {
+      var rows = groups[asset].slice().sort(function (a, b) {
+        if (a.date < b.date) return -1;
+        if (a.date > b.date) return 1;
+        return a.id < b.id ? -1 : 1;
       });
-      list.forEach(function (r) {
-        var qty = Number(r.qty);
-        var price = Number(r.price);
-        if (!isFinite(qty) || !isFinite(price)) return;
-        if (r.side === "buy") { lots.push({ qty: qty, price: price }); return; }
-        if (r.side !== "sell") return;
-        var left = qty;
-        proceeds += left * price;
-        while (left > 1e-12 && lots.length) {
-          var take = Math.min(left, lots[0].qty);
-          cost += take * lots[0].price;
-          lots[0].qty -= take;
-          left -= take;
-          if (lots[0].qty <= 1e-12) lots.shift();
+      var qty = 0;
+      var cost = 0;
+      var warn = false;
+      var lines = rows.map(function (lot) {
+        if (lot.side === "buy") {
+          qty += lot.qty;
+          cost += lot.qty * lot.price;
+          return { lot: lot, basis: lot.qty * lot.price, gain: null, avg: qty > 0 ? cost / qty : null };
         }
-        if (left > 1e-8) unmatched += left;
+        var avg = qty > 0 ? cost / qty : 0;
+        var matched = Math.min(lot.qty, qty);
+        if (lot.qty > qty + 1e-12) warn = true;
+        var basis = matched * avg;
+        var gain = lot.qty * lot.price - basis;
+        cost -= basis;
+        qty -= matched;
+        if (qty < 1e-10) { qty = 0; cost = 0; }
+        return { lot: lot, basis: basis, gain: gain, avg: matched > 0 ? avg : null };
       });
+      var realized = 0;
+      lines.forEach(function (ln) { if (ln.gain != null) realized += ln.gain; });
+      out[asset] = { lines: lines, remain: qty, avg: qty > 0 ? cost / qty : null, realized: realized, warn: warn };
     });
-    return { proceeds: proceeds, cost: cost, gain: proceeds - cost, unmatched: unmatched };
+    return out;
   }
-  function taxAssetOptions() {
-    var seen = {};
-    var out = [];
-    readArr("sr-tax").forEach(function (r) {
-      var asset = String(r.asset);
-      if (!seen[asset]) { seen[asset] = 1; out.push(asset); }
+  function viewHome() {
+    var cards = ENTITIES.filter(function (e) {
+      return hit([t("name." + e.id), t("kind." + e.kind), e.id, String(e.pct), t("exampleTag")]);
     });
-    out.sort();
-    if (SR.taxAsset && out.indexOf(SR.taxAsset) === -1) SR.taxAsset = "";
-    var html = '<option value="">' + esc(t("taxAll")) + "</option>";
-    out.forEach(function (asset) {
-      html += '<option value="' + esc(asset) + '"' + (asset === SR.taxAsset ? " selected" : "") + ">" + esc(asset) + "</option>";
+    var rows = XFERS.filter(function (r) {
+      return hit([t(r.from), t(r.to), r.val, r.token, r.usd, t("exampleTag")]);
     });
-    return html;
-  }
-  function taxForm() {
-    var side = SR.form.tax.side === "sell" ? "sell" : "buy";
-    return '<form data-form="tax" class="card"><div class="fields">'
-      + '<label class="field"><span>' + esc(t("taxDate")) + '</span><input id="tax-date" data-bind="tax.date" type="date" class="ltr" dir="ltr" value="' + val("tax.date") + '"></label>'
-      + '<label class="field"><span>' + esc(t("col.asset")) + '</span><input id="tax-asset-text" data-bind="tax.asset" class="ltr" dir="ltr" autocomplete="off" value="' + val("tax.asset") + '"></label>'
-      + '<label class="field"><span>' + esc(t("taxSide")) + '</span><select id="tax-side" data-bind="tax.side"><option value="buy"' + (side === "buy" ? " selected" : "") + ">" + esc(t("side.buy")) + '</option><option value="sell"' + (side === "sell" ? " selected" : "") + ">" + esc(t("side.sell")) + "</option></select></label>"
-      + '<label class="field"><span>' + esc(t("taxQty")) + '</span><input id="tax-qty" data-bind="tax.qty" inputmode="decimal" class="ltr" dir="ltr" autocomplete="off" value="' + val("tax.qty") + '"></label>'
-      + '<label class="field"><span>' + esc(t("taxPrice")) + '</span><input id="tax-price" data-bind="tax.price" inputmode="decimal" class="ltr" dir="ltr" autocomplete="off" value="' + val("tax.price") + '"></label>'
-      + '</div><p id="form-msg" class="err" role="alert"></p><div class="actions"><button type="submit" class="solid">' + esc(t("add")) + "</button></div></form>";
-  }
-  function taxStage() {
-    var scoped = taxScoped();
-    var q = qtext();
-    var shown = scoped.filter(function (r) { return taxMatch(r, q); });
-    if (!scoped.length) return '<p class="muted">' + esc(t("empty")) + "</p>";
-    var body = shown.map(function (r) {
-      var side = r.side === "sell" ? t("side.sell") : t("side.buy");
-      return "<tr><td><span class=\"ltr\" dir=\"ltr\">" + esc(r.date) + '</span></td><td class="isolate">' + esc(r.asset) + "</td><td>" + esc(side) + "</td><td>" + numHTML(Number(r.qty)) + "</td><td>" + numHTML(Number(r.price)) + "</td>"
-        + '<td><button type="button" class="text-btn" data-act="del-tax" data-id="' + esc(r.id) + '">' + esc(t("remove")) + "</button></td></tr>";
+    var cardHTML = cards.map(function (e) {
+      var cls = e.pct > 0 ? "up" : e.pct < 0 ? "down" : "";
+      var sign = e.pct > 0 ? "+" : "";
+      return '<article class="entity"><h3>' + esc(t("name." + e.id)) + '</h3><div class="pct"><b class="' + cls + '">' + mono(sign + e.pct.toFixed(2) + "%") + "</b><small>" + esc(t("exampleTag")) + '</small></div><p class="meta"><span class="pill">' + esc(t("kind." + e.kind)) + '</span><span class="pill">' + esc(t("exampleTag")) + "</span></p></article>";
     }).join("");
-    var table = shown.length
-      ? '<div class="table-scroll"><table class="sheet"><thead><tr><th>' + esc(t("taxDate")) + "</th><th>" + esc(t("col.asset")) + "</th><th>" + esc(t("taxSide")) + "</th><th>" + esc(t("taxQty")) + "</th><th>" + esc(t("taxPrice")) + "</th><th>" + esc(t("rowActions")) + "</th></tr></thead><tbody>" + body + "</tbody></table></div>"
-      : '<p class="muted">' + esc(t("empty")) + "</p>";
-    var sum = fifo(scoped);
-    var warn = sum.unmatched > 1e-8 ? '<p class="err" role="alert">' + esc(t("taxWarn")) + " " + numHTML(sum.unmatched) + "</p>" : "";
-    return table + '<section class="card"><h2>' + esc(t("summary")) + '</h2><p class="muted">' + esc(t("taxScope")) + '</p><dl class="stats">'
-      + stat(t("proceeds"), numHTML(sum.proceeds)) + stat(t("cost"), numHTML(sum.cost)) + stat(t("gain"), gainHTML(sum.gain)) + "</dl>" + warn + "</section>";
-  }
-  function assetOptions(selected) {
-    return CATALOG.filter(function (e) { return e.kind === "asset"; }).map(function (e) {
-      return '<option value="' + esc(e.id) + '"' + (e.id === selected ? " selected" : "") + ">" + esc(t(e.nameKey)) + "</option>";
+    var table = rows.map(function (r) {
+      return "<tr><td><span class=\"pill\">" + esc(t("exampleTag")) + "</span> " + esc(t(r.from)) + "</td><td>" + esc(t(r.to)) + "</td><td>" + mono(r.val) + "</td><td>" + mono(r.token) + "</td><td>" + mono(r.usd) + "</td></tr>";
     }).join("");
+    var q = qnorm();
+    var hits = q ? '<p class="quiet">' + esc(t("hits")) + " " + mono(String(cards.length + rows.length)) + "</p>" : "";
+    return '<section class="hero"><p class="kicker">' + esc(t("heroKicker")) + "</p><h1>" + esc(t("heroTitle")) + "</h1><p class=\"lead\">" + esc(t("heroLead")) + "</p>" + searchBox("q-hero", "finder") + "</section>"
+      + '<section class="block"><div class="headrow"><h2>' + esc(t("trendTitle")) + "</h2><p class=\"quiet\">" + esc(t("trendNote")) + "</p></div>" + hits
+      + (cards.length ? '<div class="trendrow">' + cardHTML + "</div>" : '<p class="quiet">' + esc(t("empty")) + "</p>")
+      + "</section>"
+      + '<section class="block"><div class="headrow"><h2>' + esc(t("xfersTitle")) + "</h2><p class=\"quiet\">" + esc(t("xfersNote")) + "</p></div>"
+      + (rows.length ? '<div class="tape-wrap"><table><thead><tr><th>' + esc(t("col.from")) + "</th><th>" + esc(t("col.to")) + "</th><th>" + esc(t("col.val")) + "</th><th>" + esc(t("col.token")) + "</th><th>" + esc(t("col.usd")) + "</th></tr></thead><tbody>" + table + "</tbody></table></div>" : '<p class="quiet">' + esc(t("empty")) + "</p>")
+      + "</section>";
   }
-  function alertRows() {
-    var q = qtext();
-    return readArr("sr-alerts").map(function (a) {
-      var dir = a.dir === "down" || a.dir === "below" ? "below" : "above";
-      var asset = a.asset || (a.symbol ? String(a.symbol).toLowerCase() : "");
-      var level = a.level != null ? a.level : a.threshold;
-      return { id: String(a.id), asset: asset, dir: dir, level: level };
+  function viewDex() {
+    var pairs = PAIRS.filter(function (p) { return hit([p, t("noQuote")]); });
+    var buttons = pairs.map(function (p) {
+      var on = S.pair === p ? ' aria-pressed="true"' : ' aria-pressed="false"';
+      return '<button type="button" class="pairbtn" data-pair="' + p + '"' + on + ">" + mono(p) + "</button>";
+    }).join("");
+    var price = num(S.price);
+    var qty = num(S.qty);
+    var live = "";
+    if (String(S.price).trim() !== "" || String(S.qty).trim() !== "") {
+      if (!(price > 0) || !(qty > 0)) live = '<p class="bad" role="alert">' + esc(t("previewNeed")) + "</p>";
+      else live = '<p>' + esc(t("notional")) + " " + mono(fmt(price * qty)) + "</p>";
+    }
+    var note = S.ticket ? '<p role="status">' + esc(t(S.ticket)) + "</p>" : "";
+    var blot = S.blotter.length ? '<ol class="blotter">' + S.blotter.map(function (b) {
+      return "<li>" + mono(b.pair) + " " + esc(t("side." + b.side)) + " " + mono(fmt(b.qty)) + " @ " + mono(fmt(b.price)) + " " + esc(t("notional")) + " " + mono(fmt(b.notional)) + "</li>";
+    }).join("") + "</ol>" : '<p class="quiet">' + esc(t("blotterEmpty")) + "</p>";
+    return '<section class="block"><h1>' + esc(t("dexTitle")) + '</h1><p class="banner">' + esc(t("paperLine")) + '</p><p class="quiet">' + esc(t("dexLead")) + "</p>"
+      + (qnorm() ? '<p class="quiet">' + esc(t("hits")) + " " + mono(String(pairs.length)) + "</p>" : "")
+      + (pairs.length ? '<div class="modes">' + buttons + "</div>" : '<p class="quiet">' + esc(t("empty")) + "</p>")
+      + '<div class="panel"><h2>' + mono(S.pair) + "</h2><p class=\"quiet\">" + esc(t("noQuote")) + "</p>"
+      + pills("side", S.side, [["buy", "side.buy"], ["sell", "side.sell"]])
+      + '<div class="fields">' + field("dex-price", "dexPrice", S.price, 'inputmode="decimal"') + field("dex-qty", "dexQty", S.qty, 'inputmode="decimal"') + "</div>"
+      + live + '<div class="rowacts"><button type="button" class="solid" id="paper-add">' + esc(t("preview")) + "</button></div>" + note
+      + "<h2>" + esc(t("blotter")) + "</h2>" + blot + "</div></section>";
+  }
+  function viewPred() {
+    var cats = pills("pred", S.pred, [["politics", "predCat.politics"], ["sports", "predCat.sports"], ["crypto", "predCat.crypto"]]);
+    var line = S.pred ? esc(t("predCat." + S.pred)) + " " + esc(t("predPicked")) : esc(t("predNone"));
+    var extra = qnorm() ? '<p class="quiet">' + esc(t("predQuery")) + ' <span class="isolate">' + esc(window.SR.q) + "</span></p>" : "";
+    return '<section class="block"><h1>' + esc(t("predTitle")) + '</h1><p class="banner">' + esc(t("predLead")) + "</p><p>" + line + "</p>" + extra + cats + "</section>";
+  }
+  function viewTrace() {
+    var show = S.trace.trim() === EX;
+    var body = "";
+    if (!S.trace.trim()) body = '<p class="quiet">' + esc(t("traceLead")) + "</p>";
+    else if (!show) body = '<p class="bad" role="status">' + esc(t("traceMiss")) + "</p>";
+    else {
+      body = '<p class="ok">' + esc(t("traceHit")) + "</p><ol class=\"hops\">" + HOPS.map(function (h) {
+        return "<li>" + esc(t(h[0])) + " " + esc(t("toWord")) + " " + esc(t(h[1])) + "</li>";
+      }).join("") + "</ol>";
+    }
+    return '<section class="block"><h1>' + esc(t("traceTitle")) + "</h1>" + held()
+      + "<p>" + esc(t("traceLabel")) + " " + mono(EX) + "</p>"
+      + '<div class="fields">' + field("trace-q", "traceLabel", S.trace, "") + "</div>"
+      + '<div class="rowacts"><button type="button" class="solid" id="trace-use">' + esc(t("traceUse")) + '</button><button type="button" class="ghost" id="trace-clear">' + esc(t("traceClear")) + "</button></div>"
+      + body + "</section>";
+  }
+  function viewViz() {
+    var nodes = NODES.filter(function (n) {
+      var names = [t("ex." + n.id), t("kind." + n.kind), t("linked")].concat(n.links.map(function (id) { return t("ex." + id); }));
+      if (n.id === "addr") names.push(EX);
+      return hit(names);
+    });
+    var list = nodes.map(function (n) {
+      var links = n.links.map(function (id) { return t("ex." + id); }).join(", ");
+      var addr = n.id === "addr" ? " " + mono(EX) : "";
+      return "<li><strong>" + esc(t("ex." + n.id)) + "</strong>" + addr + "<div class=\"quiet\">" + esc(t("kind." + n.kind)) + " · " + esc(t("linked")) + " " + esc(links) + "</div></li>";
+    }).join("");
+    return '<section class="block"><h1>' + esc(t("vizTitle")) + '</h1><p class="quiet">' + esc(t("vizLead")) + "</p>"
+      + searchBox("q-viz", "find")
+      + (qnorm() ? '<p class="quiet">' + esc(t("hits")) + " " + mono(String(nodes.length)) + "</p>" : "")
+      + (nodes.length ? '<ul class="nodes">' + list + "</ul>" : '<p class="quiet">' + esc(t("empty")) + "</p>")
+      + "</section>";
+  }
+  function viewAlerts() {
+    var rows = readArr("sr-room-alerts").filter(function (a) {
+      return a && typeof a.asset === "string" && (a.dir === "above" || a.dir === "below") && typeof a.level === "number";
     }).filter(function (a) {
-      if (!q) return true;
-      var e = entity(a.asset);
-      var name = e ? t(e.nameKey) : a.asset;
-      var blob = [name, a.asset, e ? e.ticker : "", a.dir, a.level].join(" ").toLowerCase();
-      return blob.indexOf(q) !== -1;
+      return hit([a.asset, t("dir." + a.dir), String(a.level), a.check == null ? "" : String(a.check)]);
     });
+    var list = rows.map(function (a) {
+      var state;
+      if (typeof a.check !== "number" || !isFinite(a.check)) state = t("alertNone");
+      else if (a.dir === "above" ? a.check >= a.level : a.check <= a.level) state = t("alertMet");
+      else state = t("alertWait");
+      return "<li>" + mono(a.asset) + " " + esc(t("dir." + a.dir)) + " " + mono(fmt(a.level))
+        + (typeof a.check === "number" ? " " + mono(fmt(a.check)) : "")
+        + "<div>" + esc(state) + '</div><button type="button" class="ghost" data-remove-alert="' + esc(a.id) + '">' + esc(t("remove")) + "</button></li>";
+    }).join("");
+    var msg = S.alertMsg ? '<p class="bad" role="alert">' + esc(t(S.alertMsg)) + "</p>" : "";
+    return '<section class="block"><h1>' + esc(t("alertsTitle")) + '</h1><p class="quiet">' + esc(t("alertsLead")) + "</p>"
+      + '<div class="fields">' + field("alert-asset", "alertAsset", S.alertAsset, "")
+      + "</div>" + pills("dir", S.alertDir, [["above", "dir.above"], ["below", "dir.below"]])
+      + '<div class="fields">' + field("alert-level", "alertLevel", S.alertLevel, 'inputmode="decimal"') + field("alert-check", "alertCheck", S.alertCheck, 'inputmode="decimal"') + "</div>"
+      + msg + '<button type="button" class="solid" id="alert-add">' + esc(t("add")) + "</button>"
+      + (rows.length ? '<ul class="nodes">' + list + "</ul>" : '<p class="quiet">' + esc(t("alertEmpty")) + "</p>")
+      + "</section>";
   }
-  function evalAlert(a) {
-    var prices = readObj("sr-prices");
-    if (prices[a.asset] == null || prices[a.asset] === "") return { state: "none" };
-    var price = Number(prices[a.asset]);
-    var level = Number(a.level);
-    if (!isFinite(price) || !isFinite(level)) return { state: "none" };
-    var met = a.dir === "below" ? price <= level : price >= level;
-    return { state: met ? "met" : "wait", price: price };
+  function viewLabels() {
+    var rows = readArr("sr-room-labels").filter(function (r) {
+      return r && typeof r.addr === "string" && typeof r.name === "string";
+    }).filter(function (r) { return hit([r.addr, r.name]); });
+    var list = rows.map(function (r) {
+      return "<li>" + mono(r.addr) + " <span class=\"isolate\">" + esc(r.name) + '</span> <button type="button" class="ghost" data-remove-label="' + esc(r.id) + '">' + esc(t("remove")) + "</button></li>";
+    }).join("");
+    var msg = S.labelMsg ? '<p class="bad" role="alert">' + esc(t(S.labelMsg)) + "</p>" : "";
+    return '<section class="block"><h1>' + esc(t("labelsTitle")) + '</h1><p class="quiet">' + esc(t("labelsLead")) + "</p>"
+      + '<div class="fields">' + field("label-addr", "labelAddr", S.labelAddr, "") + field("label-name", "labelName", S.labelName, "") + "</div>"
+      + msg + '<button type="button" class="solid" id="label-add">' + esc(t("add")) + "</button>"
+      + (rows.length ? '<ul class="nodes">' + list + "</ul>" : '<p class="quiet">' + esc(t("labelEmpty")) + "</p>")
+      + "</section>";
   }
-  function alertForm() {
-    var dir = SR.form.alert.dir === "below" ? "below" : "above";
-    var asset = SR.form.alert.asset || "btc";
-    return '<form data-form="alert" class="card"><div class="fields">'
-      + '<label class="field"><span>' + esc(t("alertAsset")) + '</span><select id="alert-asset" data-bind="alert.asset">' + assetOptions(asset) + "</select></label>"
-      + '<label class="field"><span>' + esc(t("alertDir")) + '</span><select id="alert-dir" data-bind="alert.dir"><option value="above"' + (dir === "above" ? " selected" : "") + ">" + esc(t("dir.above")) + '</option><option value="below"' + (dir === "below" ? " selected" : "") + ">" + esc(t("dir.below")) + "</option></select></label>"
-      + '<label class="field"><span>' + esc(t("alertLevel")) + '</span><input id="alert-level" data-bind="alert.level" inputmode="decimal" class="ltr" dir="ltr" autocomplete="off" value="' + val("alert.level") + '"></label>'
-      + '</div><p id="form-msg" class="err" role="alert"></p><div class="actions"><button type="submit" class="solid">' + esc(t("add")) + "</button></div></form>";
+  function viewApi() {
+    var urls = ["url.ping", "url.time", "url.exchange", "url.tickerAll", "url.ticker", "url.kline"];
+    var rows = urls.filter(function (k) { return hit([t(k)]); });
+    var list = rows.map(function (k) { return "<li>" + mono(t(k)) + "</li>"; }).join("");
+    return '<section class="block"><h1>' + esc(t("apiTitle")) + '</h1><p class="quiet">' + esc(t("apiLead")) + "</p><p>" + esc(t("apiLimit")) + "</p><p>" + esc(t("apiWeight")) + "</p>"
+      + (rows.length ? '<ul class="nodes">' + list + "</ul>" : '<p class="quiet">' + esc(t("empty")) + "</p>")
+      + "</section>";
   }
-  function alertStage() {
-    var rows = alertRows();
-    if (!rows.length) return '<p class="muted">' + esc(t("empty")) + "</p>";
-    return "<ul class=\"hops\">" + rows.map(function (a) {
-      var e = entity(a.asset);
-      var name = e ? esc(t(e.nameKey)) : '<span class="isolate">' + esc(a.asset) + "</span>";
-      var tick = e && e.ticker ? ' <span class="ltr" dir="ltr">' + esc(e.ticker) + "</span>" : "";
-      var dir = a.dir === "below" ? t("dir.below") : t("dir.above");
-      var ev = evalAlert(a);
-      var status = ev.state === "none"
-        ? esc(t("alertNone"))
-        : esc(t("lastTyped")) + " " + numHTML(ev.price) + " " + esc(ev.state === "met" ? t("alertMet") : t("alertWait"));
-      return "<li>" + name + tick + " " + esc(dir) + " " + numHTML(Number(a.level)) + '<p class="muted">' + status + '</p><button type="button" class="text-btn" data-act="del-alert" data-id="' + esc(a.id) + '">' + esc(t("remove")) + "</button></li>";
-    }).join("") + "</ul>";
+  function viewMore() {
+    return '<section class="block"><h1>' + esc(t("moreTitle")) + '</h1><p class="quiet">' + esc(t("moreLead")) + "</p>" + held()
+      + '<div class="rowacts"><button type="button" class="solid" data-view="tax">' + esc(t("nav.tax")) + '</button><button type="button" class="solid" data-view="bots">' + esc(t("nav.bots")) + '</button><button type="button" class="solid" data-view="compare">' + esc(t("nav.compare")) + "</button></div></section>";
   }
-  function posField(labelKey, id, bind) {
-    var dis = SR.tokenId ? "" : " disabled";
-    return '<label class="field"><span>' + esc(t(labelKey)) + '</span><input id="' + id + '" data-bind="' + bind + '" inputmode="decimal" class="ltr" dir="ltr" autocomplete="off"' + dis + ' value="' + val(bind) + '"></label>';
+  function viewTax() {
+    var lots = readArr("sr-room-lots").filter(function (r) {
+      return r && typeof r.asset === "string" && (r.side === "buy" || r.side === "sell") && typeof r.qty === "number" && typeof r.price === "number" && typeof r.date === "string";
+    });
+    var report = costReport(lots);
+    var assets = Object.keys(report);
+    if (S.taxAsset !== "all" && assets.indexOf(S.taxAsset) === -1) S.taxAsset = "all";
+    var options = '<option value="all"' + (S.taxAsset === "all" ? " selected" : "") + ">" + esc(t("taxAll")) + "</option>" + assets.map(function (a) {
+      return '<option value="' + esc(a) + '"' + (S.taxAsset === a ? " selected" : "") + ">" + esc(a) + "</option>";
+    }).join("");
+    var shown = lots.filter(function (r) {
+      if (S.taxAsset !== "all" && r.asset !== S.taxAsset) return false;
+      return hit([r.date, r.asset, t("side." + r.side), String(r.qty), String(r.price)]);
+    });
+    var lineMap = {};
+    Object.keys(report).forEach(function (asset) {
+      report[asset].lines.forEach(function (ln) { lineMap[ln.lot.id] = ln; });
+    });
+    var table = shown.map(function (r) {
+      var ln = lineMap[r.id];
+      var basis = ln ? fmt(ln.basis) : "—";
+      var gain = ln && ln.gain != null ? fmt(ln.gain) : "—";
+      return "<tr><td>" + mono(r.date) + "</td><td>" + mono(r.asset) + "</td><td>" + esc(t("side." + r.side)) + "</td><td>" + mono(fmt(r.qty)) + "</td><td>" + mono(fmt(r.price)) + "</td><td>" + mono(basis) + "</td><td>" + mono(gain) + '</td><td><button type="button" class="ghost" data-remove-lot="' + esc(r.id) + '">' + esc(t("remove")) + "</button></td></tr>";
+    }).join("");
+    var summaries = (S.taxAsset === "all" ? assets : [S.taxAsset]).filter(function (a) { return report[a]; }).map(function (a) {
+      var box = report[a];
+      var avg = box.avg == null ? esc(t("noRemain")) : mono(fmt(box.avg));
+      var warn = box.warn ? '<p class="bad">' + esc(t("taxWarn")) + "</p>" : "";
+      return '<div class="panel"><h2>' + mono(a) + "</h2>" + warn + '<dl class="stats">' + statPlain("taxAvg", avg) + "<div class=\"stat\"><dt>" + esc(t("taxRemain")) + "</dt><dd>" + mono(fmt(box.remain)) + "</dd></div>" + stat("taxRealized", box.realized) + "</dl></div>";
+    }).join("");
+    var msg = S.taxMsg ? '<p class="bad" role="alert">' + esc(t(S.taxMsg)) + "</p>" : "";
+    return '<section class="block"><h1>' + esc(t("taxTitle")) + '</h1><p class="quiet">' + esc(t("taxLead")) + "</p><p class=\"quiet\">" + esc(t("taxOrder")) + "</p>"
+      + '<div class="fields">' + field("lot-date", "taxDate", S.lotDate, 'type="date"') + field("lot-asset", "taxAsset", S.lotAsset, "") + "</div>"
+      + pills("lotside", S.lotSide, [["buy", "side.buy"], ["sell", "side.sell"]])
+      + '<div class="fields">' + field("lot-qty", "taxQty", S.lotQty, 'inputmode="decimal"') + field("lot-price", "taxPrice", S.lotPrice, 'inputmode="decimal"') + "</div>"
+      + msg + '<div class="rowacts"><button type="button" class="solid" id="lot-add">' + esc(t("taxAdd")) + "</button></div>"
+      + '<label class="field"><span>' + esc(t("taxAsset")) + '</span><select id="tax-asset">' + options + "</select></label>"
+      + (shown.length ? '<div class="tape-wrap"><table><thead><tr><th>' + esc(t("taxDate")) + "</th><th>" + esc(t("taxAsset")) + "</th><th>" + esc(t("taxSide")) + "</th><th>" + esc(t("taxQty")) + "</th><th>" + esc(t("taxPrice")) + "</th><th>" + esc(t("taxCost")) + "</th><th>" + esc(t("taxGain")) + "</th><th>" + esc(t("remove")) + "</th></tr></thead><tbody>" + table + "</tbody></table></div>" : '<p class="quiet">' + esc(t("taxEmpty")) + "</p>")
+      + summaries + "</section>";
   }
-  function viewBtn(view, key) {
-    var cur = SR.view === view ? ' aria-current="page"' : "";
-    return '<button type="button" data-view="' + view + '"' + cur + ">" + esc(t(key)) + "</button>";
+  function statPlain(key, html) {
+    return "<div class=\"stat\"><dt>" + esc(t(key)) + "</dt><dd>" + html + "</dd></div>";
   }
-  function navHTML() {
-    return '<nav class="nav">'
-      + viewBtn("home", "nav.home")
-      + viewBtn("transfers", "nav.transfers")
-      + viewBtn("tokens", "nav.tokens")
-      + viewBtn("bots", "nav.bots")
-      + viewBtn("tax", "nav.tax")
-      + viewBtn("alerts", "nav.alerts")
-      + "</nav>";
+  function viewBots() {
+    var mode = window.SR.bot === "dca" ? "dca" : "grid";
+    var body = mode === "dca" ? dcaFields("dca", S.cmp.A) : gridFields("grid", S.cmp.A);
+    return '<section class="block"><h1>' + esc(t("botsTitle")) + '</h1><p class="banner">' + esc(t("paperLine")) + '</p><p class="quiet">' + esc(t("botsLead")) + "</p>" + held()
+      + pills("bot", mode, [["grid", "bot.grid"], ["dca", "bot.dca"]])
+      + '<p class="quiet">' + esc(mode === "dca" ? t("dcaHint") : t("gridHint")) + "</p>"
+      + '<div class="panel">' + body + "</div></section>";
   }
-  function homeView() {
-    return '<div class="view"><h1>' + esc(t("homeTitle")) + '</h1><p class="muted">' + esc(t("homeLead")) + '</p><div id="stage">' + homeStage() + "</div></div>";
-  }
-  function transfersView() {
-    return '<div class="view"><h1>' + esc(t("nav.transfers")) + '</h1><p class="muted">' + esc(t("xferHint")) + "</p>" + pinHTML() + xferForm() + sortHTML() + '<div id="stage">' + xferStage() + "</div></div>";
-  }
-  function tokensView() {
-    return '<div class="view"><h1>' + esc(t("nav.tokens")) + '</h1><div class="split"><div id="stage">' + tokenStage() + '</div><section class="card calc-card"><div id="tok-meta">' + tokenMetaHTML() + '</div><div class="fields">'
-      + posField("tokPrice", "pos-price", "pos.price")
-      + posField("tokQty", "pos-qty", "pos.qty")
-      + posField("tokFee", "pos-fee", "pos.fee")
-      + '</div><div id="pos-out" aria-live="polite">' + posOut() + "</div></section></div></div>";
-  }
-  function botsView() {
-    var modes = '<div class="chips" role="group">' + modeBtn("grid", "botGrid") + modeBtn("dca", "botDca") + modeBtn("compare", "botCompare") + "</div>";
-    var body;
-    if (SR.botMode === "compare") {
-      body = '<div class="compare"><section class="card"><h2>' + esc(t("botGrid")) + "</h2>" + gridFields() + '<div id="grid-out" aria-live="polite">' + gridOut() + '</div></section><section class="card"><h2>' + esc(t("botDca")) + "</h2>" + dcaFields() + '<div id="dca-out" aria-live="polite">' + dcaOut() + "</div></section></div>";
-    } else if (SR.botMode === "dca") {
-      body = '<section class="card"><h2>' + esc(t("botDca")) + "</h2>" + dcaFields() + '<div id="dca-out" aria-live="polite">' + dcaOut() + "</div></section>";
-    } else {
-      body = '<section class="card"><h2>' + esc(t("botGrid")) + "</h2>" + gridFields() + '<div id="grid-out" aria-live="polite">' + gridOut() + "</div></section>";
+  function viewCompare() {
+    function col(title, prefix, b) {
+      return '<div class="panel"><h2>' + esc(t(title)) + "</h2><h3>" + esc(t("bot.grid")) + "</h3>" + gridFields(prefix + "g", b) + "<h3>" + esc(t("bot.dca")) + "</h3>" + dcaFields(prefix + "d", b) + "</div>";
     }
-    return '<div class="view"><h1>' + esc(t("nav.bots")) + "</h1>" + presetHTML() + modes + body + "</div>";
+    var lg = scoreGrid(S.cmp.A);
+    var rg = scoreGrid(S.cmp.B);
+    var ld = scoreDca(S.cmp.A);
+    var rd = scoreDca(S.cmp.B);
+    return '<section class="block"><h1>' + esc(t("compareTitle")) + '</h1><p class="banner">' + esc(t("paperLine")) + '</p><p class="quiet">' + esc(t("compareLead")) + "</p>" + held()
+      + '<div class="columns">' + col("colLeft", "a", S.cmp.A) + col("colRight", "b", S.cmp.B) + "</div>"
+      + '<div class="panel"><h2>' + esc(t("nav.compare")) + "</h2><p>" + esc(t("cmpGrid")) + " " + mono(lg == null ? "—" : fmt(lg)) + " / " + mono(rg == null ? "—" : fmt(rg)) + " " + esc(verdict(lg, rg)) + "</p><p>" + esc(t("cmpDca")) + " " + mono(ld == null ? "—" : fmt(ld)) + " / " + mono(rd == null ? "—" : fmt(rd)) + " " + esc(verdict(ld, rd)) + "</p></div></section>";
   }
-  function taxView() {
-    return '<div class="view"><h1>' + esc(t("nav.tax")) + '</h1><p class="muted">' + esc(t("taxHint")) + "</p>" + taxForm()
-      + '<label class="field filter-field"><span>' + esc(t("assetFilter")) + '</span><select id="tax-asset">' + taxAssetOptions() + "</select></label>"
-      + '<div id="stage">' + taxStage() + "</div></div>";
+  function viewAuth(kind) {
+    var saved = session();
+    var have = saved ? '<p>' + esc(t("authHave")) + ' <span class="isolate">' + esc(saved.name) + "</span></p>" : "";
+    var msg = S.authMsg ? '<p role="status">' + esc(t(S.authMsg)) + "</p>" : "";
+    var action = kind === "signup"
+      ? '<button type="button" class="solid" id="auth-save">' + esc(t("authSave")) + "</button>"
+      : '<button type="button" class="solid" id="auth-check">' + esc(t("authCheck")) + "</button>";
+    var out = saved ? '<button type="button" class="ghost" id="auth-out">' + esc(t("signOut")) + "</button>" : "";
+    var swap = kind === "signup"
+      ? '<button type="button" class="ghost" data-view="login">' + esc(t("login")) + "</button>"
+      : '<button type="button" class="ghost" data-view="signup">' + esc(t("signup")) + "</button>";
+    return '<section class="block"><h1>' + esc(t(kind === "signup" ? "signupTitle" : "loginTitle")) + "</h1>" + held() + have
+      + '<div class="fields">' + field("auth-name", "authName", S.authName, "") + "</div>"
+      + msg + '<div class="rowacts">' + action + out + swap + "</div></section>";
   }
-  function alertsView() {
-    return '<div class="view"><h1>' + esc(t("nav.alerts")) + '</h1><p class="muted">' + esc(t("alertHint")) + " " + esc(t("deviceOnly")) + "</p>" + alertForm() + '<div id="stage">' + alertStage() + "</div></div>";
+  function renderView() {
+    var v = window.SR.view;
+    if (v === "dex") return viewDex();
+    if (v === "predictions") return viewPred();
+    if (v === "tracer") return viewTrace();
+    if (v === "visualizer") return viewViz();
+    if (v === "alerts") return viewAlerts();
+    if (v === "labels") return viewLabels();
+    if (v === "api") return viewApi();
+    if (v === "more") return viewMore();
+    if (v === "tax") return crumb() + viewTax();
+    if (v === "bots") return crumb() + viewBots();
+    if (v === "compare") return crumb() + viewCompare();
+    if (v === "login") return viewAuth("login");
+    if (v === "signup") return viewAuth("signup");
+    return viewHome();
   }
-  function viewHTML() {
-    if (SR.view === "transfers") return transfersView();
-    if (SR.view === "tokens") return tokensView();
-    if (SR.view === "bots") return botsView();
-    if (SR.view === "tax") return taxView();
-    if (SR.view === "alerts") return alertsView();
-    return homeView();
+  function cookie() {
+    if (lsGet("sr-room-cookie") === "off") return "";
+    return '<aside class="cookiebar"><p>' + esc(t("cookie")) + '</p><button type="button" class="solid" id="cookie-dismiss">' + esc(t("cookieOk")) + "</button></aside>";
   }
-  function stageHTML() {
-    if (SR.view === "transfers") return xferStage();
-    if (SR.view === "tokens") return tokenStage();
-    if (SR.view === "tax") return taxStage();
-    if (SR.view === "alerts") return alertStage();
-    return homeStage();
-  }
-  function render(scroll) {
+  function render() {
     window.SRX.applyDocument();
-    document.getElementById("app").innerHTML = window.SRX.headerHTML({
-      search: true,
-      nav: navHTML(),
-      extra: '<a class="tool-link" href="stop.html">' + esc(t("deviceLink")) + "</a>"
-    }) + '<div class="page-body"><div id="main" tabindex="-1">' + viewHTML() + "</div></div>" + window.SRX.footerHTML();
-    if (scroll) window.scrollTo(0, 0);
+    document.getElementById("app").innerHTML = window.SRX.skip()
+      + window.SRX.bar({ nav: navHTML(), mid: searchBox("q-bar", "find"), end: authHTML() })
+      + '<div class="wrap"><div id="main" tabindex="-1">' + renderView() + "</div></div>"
+      + window.SRX.foot()
+      + cookie();
+    if (restore && focus.id) {
+      var el = document.getElementById(focus.id);
+      if (el) {
+        el.focus();
+        if (typeof focus.pos === "number" && el.setSelectionRange) {
+          try { el.setSelectionRange(focus.pos, focus.pos); } catch (e) {}
+        }
+      }
+    }
+    restore = false;
   }
-  function paintStage() {
-    var el = document.getElementById("stage");
-    if (el) el.innerHTML = stageHTML();
-  }
-  function paintBots() {
-    var g = document.getElementById("grid-out");
-    if (g) g.innerHTML = gridOut();
-    var d = document.getElementById("dca-out");
-    if (d) d.innerHTML = dcaOut();
-  }
-  function paintPos() {
-    var el = document.getElementById("pos-out");
-    if (el) el.innerHTML = posOut();
-  }
-  function selectToken(id) {
-    SR.tokenId = id;
-    var saved = readObj("sr-prices")[id];
-    SR.form.pos.price = saved != null && saved !== "" ? String(saved) : "";
-    var priceEl = document.getElementById("pos-price");
-    if (priceEl) { priceEl.disabled = false; priceEl.value = SR.form.pos.price; }
-    ["pos-qty", "pos-fee"].forEach(function (fid) {
-      var el = document.getElementById(fid);
-      if (el) el.disabled = false;
+  var binds = {
+    "q-bar": function (v) { window.SR.q = v; },
+    "q-hero": function (v) { window.SR.q = v; },
+    "q-viz": function (v) { window.SR.q = v; },
+    "trace-q": function (v) { S.trace = v; },
+    "dex-price": function (v) { S.price = v; },
+    "dex-qty": function (v) { S.qty = v; },
+    "alert-asset": function (v) { S.alertAsset = v; },
+    "alert-level": function (v) { S.alertLevel = v; },
+    "alert-check": function (v) { S.alertCheck = v; },
+    "label-addr": function (v) { S.labelAddr = v; },
+    "label-name": function (v) { S.labelName = v; },
+    "lot-date": function (v) { S.lotDate = v; },
+    "lot-asset": function (v) { S.lotAsset = v; },
+    "lot-qty": function (v) { S.lotQty = v; },
+    "lot-price": function (v) { S.lotPrice = v; },
+    "tax-asset": function (v) { S.taxAsset = v; },
+    "auth-name": function (v) { S.authName = v; }
+  };
+  ["a", "b"].forEach(function (side) {
+    var box = side === "a" ? S.cmp.A : S.cmp.B;
+    [["g-lower", "lower"], ["g-upper", "upper"], ["g-count", "count"], ["g-quote", "quote"], ["d-start", "start"], ["d-base", "base"], ["d-safety", "safety"], ["d-drop", "drop"], ["d-scale", "scale"]].forEach(function (pair) {
+      binds[side + pair[0]] = function (v) { box[pair[1]] = v; };
     });
-    document.querySelectorAll("[data-token]").forEach(function (b) {
-      b.setAttribute("aria-pressed", b.getAttribute("data-token") === id ? "true" : "false");
-    });
-    var meta = document.getElementById("tok-meta");
-    if (meta) meta.innerHTML = tokenMetaHTML();
-    paintPos();
-  }
-  function syncSort() {
-    document.querySelectorAll("[data-sort]").forEach(function (b) {
-      var key = b.getAttribute("data-sort");
-      var on = SR.xferSort.key === key;
-      b.setAttribute("aria-pressed", on ? "true" : "false");
-      b.textContent = (b.getAttribute("data-label") || "") + (on ? sortMark(key) : "");
-    });
-  }
-  function onField(e) {
-    if (!e.target || !e.target.id && !e.target.getAttribute) return;
-    if (e.target.id === "q") {
-      SR.q = e.target.value;
-      paintStage();
+  });
+  [["grid-lower", "lower"], ["grid-upper", "upper"], ["grid-count", "count"], ["grid-quote", "quote"], ["dca-start", "start"], ["dca-base", "base"], ["dca-safety", "safety"], ["dca-drop", "drop"], ["dca-scale", "scale"]].forEach(function (pair) {
+    binds[pair[0]] = function (v) { S.cmp.A[pair[1]] = v; };
+  });
+
+  function onEdit(e) {
+    var id = e.target && e.target.id;
+    if (!id || !binds[id]) return;
+    if (e.type === "change" && e.target.tagName !== "SELECT") {
+      binds[id](e.target.value);
       return;
     }
-    if (e.target.id === "tax-asset") {
-      SR.taxAsset = e.target.value;
-      paintStage();
-      return;
-    }
-    var key = e.target.getAttribute("data-bind");
-    if (!key) return;
-    setPath(SR.form, key, e.target.value);
-    if (key.indexOf("grid.") === 0 || key.indexOf("dca.") === 0) paintBots();
-    if (key.indexOf("pos.") === 0) {
-      if (key === "pos.price") saveTokenPrice();
-      paintPos();
-    }
+    binds[id](e.target.value);
+    focus.id = id;
+    focus.pos = typeof e.target.selectionStart === "number" ? e.target.selectionStart : null;
+    restore = true;
+    render();
   }
+  document.addEventListener("input", onEdit);
+  document.addEventListener("change", onEdit);
   document.addEventListener("click", function (e) {
     if (e.target.closest("[data-set-lang],[data-set-theme],[data-skip]")) return;
-    var viewEl = e.target.closest("[data-view]");
-    if (viewEl) {
-      SR.view = viewEl.getAttribute("data-view") || "home";
-      render(true);
-      return;
-    }
-    var sortEl = e.target.closest("[data-sort]");
-    if (sortEl) {
-      var key = sortEl.getAttribute("data-sort");
-      if (SR.xferSort.key === key) SR.xferSort.dir = -SR.xferSort.dir;
-      else SR.xferSort = { key: key, dir: -1 };
-      syncSort();
-      paintStage();
-      return;
-    }
-    var opener = e.target.closest("[data-open]");
-    if (opener) {
-      var oid = opener.getAttribute("data-open");
-      SR.openId = SR.openId === oid ? "" : oid;
-      paintStage();
-      return;
-    }
-    var tok = e.target.closest("[data-token]");
-    if (tok) { selectToken(tok.getAttribute("data-token")); return; }
+    var view = e.target.closest("[data-view]");
+    if (view) { window.SR.view = view.getAttribute("data-view"); render(); return; }
+    var pair = e.target.closest("[data-pair]");
+    if (pair) { S.pair = pair.getAttribute("data-pair"); render(); return; }
+    var side = e.target.closest("[data-side]");
+    if (side) { S.side = side.getAttribute("data-side"); render(); return; }
+    var pred = e.target.closest("[data-pred]");
+    if (pred) { S.pred = pred.getAttribute("data-pred"); render(); return; }
+    var dir = e.target.closest("[data-dir]");
+    if (dir) { S.alertDir = dir.getAttribute("data-dir"); render(); return; }
+    var lotSide = e.target.closest("[data-lotside]");
+    if (lotSide) { S.lotSide = lotSide.getAttribute("data-lotside"); render(); return; }
     var bot = e.target.closest("[data-bot]");
-    if (bot) { SR.botMode = bot.getAttribute("data-bot") || "grid"; render(false); return; }
-    var act = e.target.closest("[data-act]");
-    if (!act) return;
-    var action = act.getAttribute("data-act");
-    var id = act.getAttribute("data-id");
-    if (action === "clear-pin") { SR.pin = ""; render(false); return; }
-    if (action === "open-x") {
-      var dest = act.getAttribute("data-dest");
-      if (dest === "transfers") { SR.pin = id; SR.view = "transfers"; }
-      else if (dest === "tokens") {
-        SR.tokenId = id;
-        var saved = readObj("sr-prices")[id];
-        SR.form.pos.price = saved != null && saved !== "" ? String(saved) : "";
-        SR.view = "tokens";
-      } else if (dest === "bots") { applyPreset(id); SR.view = "bots"; }
-      render(true);
+    if (bot) { window.SR.bot = bot.getAttribute("data-bot"); render(); return; }
+    if (e.target.closest("#cookie-dismiss")) { lsSet("sr-room-cookie", "off"); render(); return; }
+    if (e.target.closest("#trace-use")) { S.trace = EX; render(); return; }
+    if (e.target.closest("#trace-clear")) { S.trace = ""; render(); return; }
+    if (e.target.closest("#paper-add")) {
+      var price = num(S.price);
+      var qty = num(S.qty);
+      if (!(price > 0) || !(qty > 0)) { S.ticket = "notAdded"; render(); return; }
+      S.blotter.unshift({ pair: S.pair, side: S.side, price: price, qty: qty, notional: price * qty });
+      if (S.blotter.length > 8) S.blotter.pop();
+      S.ticket = "added";
+      render();
       return;
     }
-    if (action === "edit-x") {
-      var row = readArr("sr-transfers").filter(function (r) { return r.id === id; })[0];
-      if (!row) return;
-      SR.editXfer = row.id;
-      SR.form.xfer = { time: row.time, from: row.from, to: row.to, asset: row.asset, amount: String(row.amount) };
-      render(false);
+    if (e.target.closest("#alert-add")) {
+      var level = num(S.alertLevel);
+      var asset = S.alertAsset.trim();
+      if (!asset || !(level > 0)) { S.alertMsg = "alertBad"; render(); return; }
+      var check = String(S.alertCheck).trim() === "" ? null : num(S.alertCheck);
+      if (check != null && !isFinite(check)) { S.alertMsg = "alertBad"; render(); return; }
+      var alerts = readArr("sr-room-alerts");
+      alerts.push({ id: uid(), asset: asset, dir: S.alertDir === "below" ? "below" : "above", level: level, check: check });
+      if (!writeArr("sr-room-alerts", alerts)) { S.alertMsg = "storeFail"; render(); return; }
+      S.alertAsset = ""; S.alertLevel = ""; S.alertCheck = ""; S.alertMsg = "";
+      render();
       return;
     }
-    if (action === "cancel-x") { blankXfer(); render(false); return; }
-    if (action === "del-x") {
-      writeArr("sr-transfers", readArr("sr-transfers").filter(function (r) { return r.id !== id; }));
-      if (SR.editXfer === id) blankXfer();
-      render(false);
+    var rmA = e.target.closest("[data-remove-alert]");
+    if (rmA) {
+      var idA = rmA.getAttribute("data-remove-alert");
+      writeArr("sr-room-alerts", readArr("sr-room-alerts").filter(function (r) { return r.id !== idA; }));
+      render();
       return;
     }
-    if (action === "del-tax") {
-      writeArr("sr-tax", readArr("sr-tax").filter(function (r) { return r.id !== id; }));
-      render(false);
+    if (e.target.closest("#label-add")) {
+      var addr = S.labelAddr.trim();
+      var name = S.labelName.trim();
+      if (!addr || !name) { S.labelMsg = "labelBad"; render(); return; }
+      var labels = readArr("sr-room-labels");
+      labels.push({ id: uid(), addr: addr, name: name });
+      if (!writeArr("sr-room-labels", labels)) { S.labelMsg = "storeFail"; render(); return; }
+      S.labelAddr = ""; S.labelName = ""; S.labelMsg = "";
+      render();
       return;
     }
-    if (action === "del-alert") {
-      writeArr("sr-alerts", readArr("sr-alerts").filter(function (r) { return String(r.id) !== id; }));
-      render(false);
-    }
-  });
-  document.addEventListener("submit", function (e) {
-    var form = e.target;
-    if (!form || !form.getAttribute) return;
-    var kind = form.getAttribute("data-form");
-    if (!kind) return;
-    e.preventDefault();
-    if (kind === "xfer") { saveXfer(); return; }
-    if (kind === "tax") {
-      var date = document.getElementById("tax-date").value.trim();
-      var asset = document.getElementById("tax-asset-text").value.trim();
-      var side = document.getElementById("tax-side").value === "sell" ? "sell" : "buy";
-      var qty = Number(document.getElementById("tax-qty").value);
-      var price = Number(document.getElementById("tax-price").value);
-      if (!date || !asset || !isFinite(qty) || !(qty > 0) || !isFinite(price) || !(price > 0)) {
-        var msg = document.getElementById("form-msg");
-        if (msg) msg.textContent = t("badTax");
-        return;
-      }
-      var list = readArr("sr-tax");
-      list.push({ id: uid(), date: date, asset: asset, side: side, qty: qty, price: price });
-      writeArr("sr-tax", list);
-      SR.form.tax = { date: "", asset: "", side: "buy", qty: "", price: "" };
-      render(false);
+    var rmL = e.target.closest("[data-remove-label]");
+    if (rmL) {
+      var idL = rmL.getAttribute("data-remove-label");
+      writeArr("sr-room-labels", readArr("sr-room-labels").filter(function (r) { return r.id !== idL; }));
+      render();
       return;
     }
-    if (kind === "alert") {
-      var assetId = document.getElementById("alert-asset").value;
-      var dir = document.getElementById("alert-dir").value === "below" ? "below" : "above";
-      var level = Number(document.getElementById("alert-level").value);
-      var ent = entity(assetId);
-      if (!ent || ent.kind !== "asset" || !isFinite(level)) {
-        var msgA = document.getElementById("form-msg");
-        if (msgA) msgA.textContent = t("errBad");
-        return;
-      }
-      var alerts = readArr("sr-alerts");
-      alerts.push({ id: uid(), asset: assetId, dir: dir, level: level });
-      writeArr("sr-alerts", alerts);
-      SR.form.alert.level = "";
-      SR.form.alert.asset = assetId;
-      SR.form.alert.dir = dir;
-      render(false);
+    if (e.target.closest("#lot-add")) {
+      var qtyL = num(S.lotQty);
+      var priceL = num(S.lotPrice);
+      var assetL = S.lotAsset.trim();
+      if (!S.lotDate || !assetL || !(qtyL > 0) || !(priceL > 0)) { S.taxMsg = "taxBad"; render(); return; }
+      var lots = readArr("sr-room-lots");
+      lots.push({ id: uid(), date: S.lotDate, asset: assetL, side: S.lotSide === "sell" ? "sell" : "buy", qty: qtyL, price: priceL });
+      if (!writeArr("sr-room-lots", lots)) { S.taxMsg = "storeFail"; render(); return; }
+      S.lotQty = ""; S.lotPrice = ""; S.taxMsg = "";
+      render();
+      return;
     }
-  });
-  document.addEventListener("input", onField);
-  document.addEventListener("change", onField);
-  document.addEventListener("keydown", function (e) {
-    var tag = document.activeElement && document.activeElement.tagName;
-    if (e.key === "/" && tag !== "INPUT" && tag !== "SELECT" && tag !== "TEXTAREA") {
-      var q = document.getElementById("q");
-      if (q) { e.preventDefault(); q.focus(); }
+    var rmLot = e.target.closest("[data-remove-lot]");
+    if (rmLot) {
+      var idLot = rmLot.getAttribute("data-remove-lot");
+      writeArr("sr-room-lots", readArr("sr-room-lots").filter(function (r) { return r.id !== idLot; }));
+      render();
+      return;
+    }
+    if (e.target.closest("#auth-save")) {
+      var nm = S.authName.trim();
+      if (!nm) { S.authMsg = "authNeed"; render(); return; }
+      if (!lsSet("sr-room-session", JSON.stringify({ name: nm }))) { S.authMsg = "storeFail"; render(); return; }
+      S.authMsg = "authSaved";
+      render();
+      return;
+    }
+    if (e.target.closest("#auth-check")) {
+      var saved = session();
+      var typed = S.authName.trim();
+      if (!typed) { S.authMsg = "authNeed"; render(); return; }
+      if (!saved) S.authMsg = "authNone";
+      else if (saved.name === typed) S.authMsg = "authMatch";
+      else S.authMsg = "authMiss";
+      render();
+      return;
+    }
+    if (e.target.closest("#auth-out")) {
+      try { localStorage.removeItem("sr-room-session"); } catch (e2) {}
+      S.authMsg = "authOut";
+      render();
     }
   });
 
-  SR.view = "home";
-  SR.q = SR.q || "";
-  SR.openId = "";
-  SR.tokenId = "";
-  SR.pin = "";
-  SR.presetId = "";
-  SR.botMode = "grid";
-  SR.xferSort = { key: "time", dir: -1 };
-  SR.taxAsset = "";
-  SR.editXfer = "";
-  SR.form = freshForm();
+  if (window.SR.bot !== "grid" && window.SR.bot !== "dca") window.SR.bot = "grid";
   window.SRX.initChrome();
-  SR.onChange = function () { render(false); };
-  render(false);
+  window.SR.onChange = function () { render(); };
+  render();
 })();
