@@ -1,17 +1,3 @@
-  }
-  function viewApi() {
-    var urls = ["apiEx.ping", "apiEx.time", "apiEx.info", "apiEx.price", "apiEx.bars"];
-    var rows = urls.filter(function (k) { return hit([t(k)]); });
-    var list = rows.map(function (k) { return "<li>" + mono(t(k)) + "</li>"; }).join("");
-    return '<section class="block"><h1>' + esc(t("apiTitle")) + '</h1><p class="quiet">' + esc(t("apiLead")) + "</p><p>" + esc(t("apiLimit")) + "</p><p>" + esc(t("apiWeight")) + "</p>"
-      + (rows.length ? '<ul class="nodes">' + list + "</ul>" : '<p class="quiet">' + esc(t("empty")) + "</p>") + "</section>";
-  }
-  function viewMore() {
-    var buttons = MORE.map(function (id) {
-      return '<button type="button" class="dircard" data-view="' + id + '"><strong>' + esc(t("moreItem." + id)) + "</strong></button>";
-    }).join("");
-    return '<section class="block"><h1>' + esc(t("moreTitle")) + '</h1><p class="quiet">' + esc(t("moreLead")) + "</p>" + held() + '<div class="dirgrid">' + buttons + "</div></section>";
-  }
   function costReport(lots) {
     var groups = {};
     lots.forEach(function (lot) { if (!groups[lot.asset]) groups[lot.asset] = []; groups[lot.asset].push(lot); });
@@ -98,3 +84,14 @@
       + '<label class="field"><span>' + esc(t("taxAsset")) + '</span><select id="tax-asset">' + options + "</select></label>"
       + (shown.length ? '<div class="tape-wrap"><table><thead><tr><th>' + esc(t("taxDate")) + "</th><th>" + esc(t("taxWallet")) + "</th><th>" + esc(t("taxAsset")) + "</th><th>" + esc(t("taxSide")) + "</th><th>" + esc(t("taxQty")) + "</th><th>" + esc(t("taxPrice")) + "</th><th>" + esc(t("taxCost")) + "</th><th>" + esc(t("taxGain")) + "</th><th>" + esc(t("remove")) + "</th></tr></thead><tbody>" + table + "</tbody></table></div>" : "")
       + "</section>";
+  }
+  function viewAuth(kind) {
+    var saved = session();
+    var have = saved ? "<p>" + esc(t("authHave")) + ' <span class="isolate">' + esc(saved.name) + "</span></p>" : "";
+    var msg = S.authMsg ? '<p role="status">' + esc(t(S.authMsg)) + "</p>" : "";
+    var action = kind === "signup" ? '<button type="button" class="solid" id="auth-save">' + esc(t("authSave")) + "</button>" : '<button type="button" class="solid" id="auth-check">' + esc(t("authCheck")) + "</button>";
+    var out = saved ? '<button type="button" class="ghost" id="auth-out">' + esc(t("signOut")) + "</button>" : "";
+    var swap = kind === "signup" ? '<button type="button" class="ghost" data-view="login">' + esc(t("login")) + "</button>" : '<button type="button" class="ghost" data-view="signup">' + esc(t("signup")) + "</button>";
+    return '<section class="block"><h1>' + esc(t(kind === "signup" ? "signupTitle" : "loginTitle")) + "</h1>" + held() + have
+      + '<div class="fields">' + field("auth-name", "authName", S.authName, "") + "</div>" + msg + '<div class="rowacts">' + action + out + swap + "</div></section>";
+  }
