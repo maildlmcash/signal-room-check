@@ -1,0 +1,209 @@
+/* Signal Room luxury desk layer — amber gold on deep charcoal */
+body {
+  background:
+    radial-gradient(900px 420px at 12% -6%, var(--glow), transparent 58%),
+    radial-gradient(780px 380px at 88% 4%, var(--glow-cool), transparent 55%),
+    radial-gradient(640px 280px at 50% 100%, rgba(201, 163, 92, 0.06), transparent 60%),
+    linear-gradient(180deg, color-mix(in srgb, var(--bg) 92%, #1a1620) 0%, var(--bg) 48%),
+    var(--bg);
+  background-attachment: fixed;
+}
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.35;
+  background-image:
+    linear-gradient(var(--line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--line) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse 70% 55% at 50% 0%, #000 20%, transparent 75%);
+}
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+#app, .topnav, .wrap, .foot, .cookiebar, .sourcebar { position: relative; z-index: 1; }
+.topnav {
+  background: color-mix(in srgb, var(--bg) 72%, transparent);
+  backdrop-filter: blur(22px) saturate(1.2);
+  -webkit-backdrop-filter: blur(22px) saturate(1.2);
+  border-bottom-color: color-mix(in srgb, var(--line) 70%, var(--accent) 30%);
+  box-shadow: 0 1px 0 var(--line-soft), 0 12px 40px rgba(0, 0, 0, 0.18);
+}
+.brandlock {
+  transition: color var(--ease), opacity var(--ease);
+}
+.brandlock:hover { color: var(--accent-hi); }
+.brandlock svg {
+  filter: drop-shadow(0 0 8px var(--glow));
+}
+.lux-hero.hero {
+  padding: 64px 0 20px;
+  gap: 14px;
+  position: relative;
+}
+.lux-hero.hero::before {
+  content: "";
+  position: absolute;
+  inset-inline: 10%;
+  top: 8px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  opacity: 0.45;
+}
+.lux-hero .kicker {
+  letter-spacing: 0.14em;
+}
+.lux-hero h1 {
+  font-size: clamp(32px, 5vw, 48px);
+  background: linear-gradient(135deg, var(--text) 40%, var(--accent-hi));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+html[data-theme="day"] .lux-hero h1 {
+  background: linear-gradient(135deg, var(--text) 30%, var(--accent));
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+.panel, .lux-card, .entitycard, .dircard, .entity, .steps li {
+  box-shadow: var(--shadow-card), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  background-image: linear-gradient(165deg, color-mix(in srgb, var(--card) 88%, #fff 4%) 0%, var(--card) 55%);
+}
+html[data-theme="day"] .panel,
+html[data-theme="day"] .lux-card,
+html[data-theme="day"] .entitycard,
+html[data-theme="day"] .dircard,
+html[data-theme="day"] .entity,
+html[data-theme="day"] .steps li {
+  background-image: linear-gradient(165deg, #fff 0%, var(--card) 70%);
+  box-shadow: var(--shadow-card), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+.entitycard:hover, .dircard:hover, .steps li:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--line) 40%, var(--accent) 60%);
+  box-shadow: var(--shadow), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+.entitycard:active, .dircard:active { transform: translateY(0); }
+.tape-wrap, .lux-table-wrap, .scroll {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+.solid {
+  box-shadow: 0 6px 18px var(--glow);
+}
+.solid:hover { box-shadow: 0 8px 22px var(--glow); transform: translateY(-1px); }
+.finder {
+  border-color: color-mix(in srgb, var(--line) 50%, var(--accent) 50%);
+  box-shadow: 0 0 0 6px var(--accent-dim), 0 16px 40px rgba(0, 0, 0, 0.2);
+}
+.pill {
+  border-color: var(--line-soft);
+  color: var(--accent-hi);
+  background: var(--accent-dim);
+}
+.banner {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+.stat dd, .num, .price-line .num {
+  letter-spacing: -0.02em;
+}
+.cookiebar {
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-color: var(--line-soft);
+}
+.foot {
+  border-top-color: color-mix(in srgb, var(--line) 80%, var(--accent) 20%);
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+  .entitycard:hover, .dircard:hover, .steps li:hover, .solid:hover {
+    transform: none;
+  }
+}
+
+.sourcebar {
+  width: var(--wrap);
+  margin-inline: auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px 0 0;
+}
+.desk-grid {
+  display: grid;
+  grid-template-columns: minmax(280px, 400px) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+.desk-grid.even { grid-template-columns: 1fr 1fr; }
+.stack { display: grid; gap: 10px; }
+.entitycard {
+  text-align: start;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 12px;
+  color: var(--text);
+  display: grid;
+  gap: 6px;
+  box-shadow: var(--shadow-card);
+  transition: transform var(--ease), border-color var(--ease), box-shadow var(--ease);
+}
+.entitycard h3 { font-size: 15px; }
+.kv, .cardtop {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: baseline;
+}
+.kv { color: var(--muted); font-size: 12px; }
+.filterrow { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; }
+.tape-wrap.tight { max-height: 520px; }
+.dirgrid, .lux-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+}
+.dircard {
+  text-align: start;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 12px;
+  display: grid;
+  gap: 8px;
+  color: var(--text);
+  transition: transform var(--ease), border-color var(--ease), box-shadow var(--ease);
+}
+.dircard[aria-pressed="true"] { border-color: var(--accent); box-shadow: var(--shadow-card); }
+.dircard .meta { display: flex; flex-wrap: wrap; gap: 4px; }
+.steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.steps li {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 10px;
+  display: grid;
+  gap: 4px;
+  background: var(--card);
+  transition: border-color var(--ease), transform var(--ease);
+}
