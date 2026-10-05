@@ -18,7 +18,7 @@
     return '<section class="block"><h1>' + esc(t("dexTitle")) + '</h1><p class="banner">' + esc(t("paperLine")) + '</p><p class="quiet">' + esc(t("dexLead")) + "</p>"
       + (qnorm() ? '<p class="quiet">' + esc(t("hits")) + " " + mono(String(pairs.length)) + "</p>" : "")
       + (pairs.length ? '<div class="modes">' + buttons + "</div>" : '<p class="quiet">' + esc(t("empty")) + "</p>")
-      + '<div class="panel"><h2>' + mono(S.pair) + '</h2><p class="quiet">' + esc(t("noQuote")) + "</p>"
+      + '<div class="panel lux-card"><h2>' + mono(S.pair) + '</h2><p class="quiet">' + esc(t("noQuote")) + "</p>"
       + pills("side", S.side, [["buy", "side.buy"], ["sell", "side.sell"]])
       + '<div class="fields">' + field("dex-price", "dexPrice", S.price, 'inputmode="decimal"') + field("dex-qty", "dexQty", S.qty, 'inputmode="decimal"') + "</div>"
       + live + '<div class="rowacts"><button type="button" class="solid" id="paper-add">' + esc(t("preview")) + "</button></div>" + note
@@ -87,5 +87,5 @@
     var buttons = MORE.map(function (id) {
       return '<button type="button" class="dircard" data-view="' + id + '"><strong>' + esc(t("moreItem." + id)) + "</strong></button>";
     }).join("");
-    return '<section class="block"><h1>' + esc(t("moreTitle")) + '</h1><p class="quiet">' + esc(t("moreLead")) + "</p>" + held() + '<div class="dirgrid">' + buttons + "</div></section>";
+    return '<section class="block"><h1>' + esc(t("moreTitle")) + '</h1><p class="quiet">' + esc(t("moreLead")) + "</p>" + held() + '<div class="dirgrid lux-grid">' + buttons + "</div></section>";
   }

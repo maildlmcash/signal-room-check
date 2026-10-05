@@ -63,7 +63,7 @@
       var box = report[a];
       var avg = box.avg == null ? esc(t("noRemain")) : mono(fmt(box.avg));
       var warn = box.warn ? '<p class="bad">' + esc(t("taxWarn")) + "</p>" : "";
-      return '<div class="panel"><h2>' + mono(a) + "</h2>" + warn + '<dl class="stats">' + statPlain("taxAvg", avg) + '<div class="stat"><dt>' + esc(t("taxRemain")) + "</dt><dd>" + mono(fmt(box.remain)) + "</dd></div>" + stat("taxRealized", box.realized) + "</dl></div>";
+      return '<div class="panel lux-card"><h2>' + mono(a) + "</h2>" + warn + '<dl class="stats">' + statPlain("taxAvg", avg) + '<div class="stat"><dt>' + esc(t("taxRemain")) + "</dt><dd>" + mono(fmt(box.remain)) + "</dd></div>" + stat("taxRealized", box.realized) + "</dl></div>";
     }).join("");
     var msg = S.taxMsg ? '<p class="bad" role="alert">' + esc(t(S.taxMsg)) + "</p>" : "";
     var wList = wallets.map(function (w) {
@@ -82,7 +82,7 @@
       + (lots.length ? "" : '<p class="quiet">' + esc(t("taxEmpty")) + "</p>")
       + "<h2>" + esc(t("step2")) + '</h2><p class="quiet">' + esc(t("step2Lead")) + "</p>" + (lots.length ? summaries : "") + "<h2>" + esc(t("step3")) + "</h2><h2>" + esc(t("reportTitle")) + '</h2><p class="quiet">' + esc(t("reportLead")) + "</p>"
       + '<label class="field"><span>' + esc(t("taxAsset")) + '</span><select id="tax-asset">' + options + "</select></label>"
-      + (shown.length ? '<div class="tape-wrap"><table><thead><tr><th>' + esc(t("taxDate")) + "</th><th>" + esc(t("taxWallet")) + "</th><th>" + esc(t("taxAsset")) + "</th><th>" + esc(t("taxSide")) + "</th><th>" + esc(t("taxQty")) + "</th><th>" + esc(t("taxPrice")) + "</th><th>" + esc(t("taxCost")) + "</th><th>" + esc(t("taxGain")) + "</th><th>" + esc(t("remove")) + "</th></tr></thead><tbody>" + table + "</tbody></table></div>" : "")
+      + (shown.length ? '<div class="tape-wrap lux-table-wrap"><table><thead><tr><th>' + esc(t("taxDate")) + "</th><th>" + esc(t("taxWallet")) + "</th><th>" + esc(t("taxAsset")) + "</th><th>" + esc(t("taxSide")) + "</th><th>" + esc(t("taxQty")) + "</th><th>" + esc(t("taxPrice")) + "</th><th>" + esc(t("taxCost")) + "</th><th>" + esc(t("taxGain")) + "</th><th>" + esc(t("remove")) + "</th></tr></thead><tbody>" + table + "</tbody></table></div>" : "")
       + "</section>";
   }
   function viewAuth(kind) {
