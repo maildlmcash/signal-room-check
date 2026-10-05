@@ -5,6 +5,8 @@ globalThis.SR_DICT.hi = {
 
       "brand": "संकेत कक्ष",
       "skip": "विषय पर जाएँ",
+      "menuOpen": "मेनू",
+      "menuClose": "बंद करें",
       "login": "प्रवेश",
       "signup": "पंजीकरण",
       "signOut": "बाहर",
