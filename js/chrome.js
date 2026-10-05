@@ -11,7 +11,7 @@
   }
   function esc(s) {
     return String(s).replace(/[&<>"']/g, function (c) {
-      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': """, "'": "&#39;" }[c];
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&amp;quot;", "'": "&#39;" }[c];
     });
   }
   function resolvedTheme() {
