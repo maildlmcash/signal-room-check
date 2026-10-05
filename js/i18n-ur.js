@@ -4,6 +4,8 @@ globalThis.SR_DICT.ur = {
     "strings": {
       "brand": "اشارہ خانہ",
       "skip": "مواد پر جائیں",
+      "menuOpen": "مینو",
+      "menuClose": "بند کریں",
       "login": "داخلہ",
       "signup": "اندراج",
       "signOut": "باہر",
@@ -257,7 +259,7 @@ globalThis.SR_DICT.ur = {
       },
       "srcGroup": "ماخذ",
       "src": {
-        "desk": "آرخم میز",
+        "desk": "مثالی میز",
         "tax": "ٹیکس",
         "gainium": "گینیم",
         "commas": "3کوماز",
