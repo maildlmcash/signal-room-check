@@ -6,6 +6,8 @@ globalThis.SR_DICT = {
     "strings": {
       "brand": "Signal Room",
       "skip": "Skip to content",
+      "menuOpen": "Menu",
+      "menuClose": "Close",
       "login": "Log in",
       "signup": "Sign up",
       "signOut": "Sign out",

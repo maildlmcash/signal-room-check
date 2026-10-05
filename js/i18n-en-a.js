@@ -25,7 +25,7 @@ Object.assign(globalThis.SR_DICT.en.strings, {
       },
       "srcGroup": "Source",
       "src": {
-        "desk": "Arkham desk",
+        "desk": "Example desk",
         "tax": "Tax",
         "gainium": "Gainium",
         "commas": "3Commas",
