@@ -58,7 +58,7 @@
       + '<p class="quiet">' + esc(t(opts.lead)) + '</p><div class="modes">' + pairButtons() + "</div>"
       + pills("side", S.side, [["buy", "side.buy"], ["sell", "side.sell"]])
       + '<div class="fields">' + field("dex-price", "dexPrice", S.price, 'inputmode="decimal"') + field("dex-qty", "dexQty", S.qty, 'inputmode="decimal"') + lev + "</div>"
-      + '<div class="panel"><h2>' + esc(t("typedTicket")) + "</h2><p>" + bits + '</p><p class="banner">' + esc(banner) + "</p></div></section>";
+      + '<div class="panel lux-card"><h2>' + esc(t("typedTicket")) + "</h2><p>" + bits + '</p><p class="banner">' + esc(banner) + "</p></div></section>";
   }
   function viewSpot() { return ticketPage({ title: "spotTitle", lead: "spotLead", fut: false }); }
   function viewFutures() { return ticketPage({ title: "futTitle", lead: "futLead", fut: true }); }
@@ -73,14 +73,14 @@
       var cls = m.pct > 0 ? "up" : m.pct < 0 ? "down" : "";
       var sign = m.pct > 0 ? "+" : "";
       var on = S.pair === m.pair ? ' aria-pressed="true"' : ' aria-pressed="false"';
-      return '<button type="button" class="entitycard" data-pair="' + m.pair + '"' + on + '><div class="cardtop"><h3>' + esc(t("name." + m.asset)) + "</h3><span class=\"pill\">" + esc(t("exampleTag")) + "</span></div><div class=\"kv\"><span>" + mono(m.pair) + "</span></div><div class=\"kv\"><span>" + esc(t("mktLast")) + "</span><span>" + mono(m.price) + "</span></div><div class=\"kv\"><span>" + esc(t("mktChg")) + '</span><b class="' + cls + '">' + mono(sign + m.pct.toFixed(2) + "%") + "</b></div></button>";
+      return '<button type="button" class="entitycard lux-card" data-pair="' + m.pair + '"' + on + '><div class="cardtop"><h3>' + esc(t("name." + m.asset)) + "</h3><span class=\"pill\">" + esc(t("exampleTag")) + "</span></div><div class=\"kv\"><span>" + mono(m.pair) + "</span></div><div class=\"kv\"><span>" + esc(t("mktLast")) + "</span><span>" + mono(m.price) + "</span></div><div class=\"kv\"><span>" + esc(t("mktChg")) + '</span><b class="' + cls + '">' + mono(sign + m.pct.toFixed(2) + "%") + "</b></div></button>";
     }).join("");
     var note = S.pairNote ? '<p role="status">' + esc(t(S.pairNote)) + " " + mono(S.pair) + '</p><div class="rowacts"><button type="button" class="solid" data-view="spot">' + esc(t("nav.spot")) + '</button><button type="button" class="ghost" data-view="futures">' + esc(t("nav.futures")) + "</button></div>" : "";
     return '<section class="block"><h1>' + esc(t("mktTitle")) + '</h1><p class="quiet">' + esc(t("mktLead")) + "</p>"
       + '<div class="fields">' + field("mkt-q", "mktSearch", S.mq, "") + "</div>"
       + (qnorm() || q ? '<p class="quiet">' + esc(t("hits")) + " " + mono(String(rows.length)) + "</p>" : "")
       + note
-      + (cards ? '<div class="dirgrid">' + cards + "</div>" : '<p class="quiet">' + esc(t("empty")) + "</p>") + "</section>";
+      + (cards ? '<div class="dirgrid lux-grid">' + cards + "</div>" : '<p class="quiet">' + esc(t("empty")) + "</p>") + "</section>";
   }
   function planForm(botId) {
     var rows = readArr("sr-room-plans").filter(function (r) { return r && r.bot === botId && typeof r.name === "string"; });
@@ -116,27 +116,27 @@
       var on = S.gOpen === c.id ? ' aria-pressed="true"' : ' aria-pressed="false"';
       var meta = c.tags.map(function (tag) { return '<span class="pill">' + esc(t("tag." + tag)) + "</span>"; }).join("");
       var lead = c.kind === "plan" ? t("planCard") : t("openPaper");
-      return '<button type="button" class="dircard" data-g-open="' + c.id + '"' + on + "><strong>" + esc(t("botCard." + c.id)) + '</strong><span class="quiet">' + esc(lead) + '</span><span class="meta">' + meta + "</span></button>";
+      return '<button type="button" class="dircard lux-card" data-g-open="' + c.id + '"' + on + "><strong>" + esc(t("botCard." + c.id)) + '</strong><span class="quiet">' + esc(lead) + '</span><span class="meta">' + meta + "</span></button>";
     }).join("");
     return '<section class="block"><h1>' + esc(t("botsTitle")) + '</h1><p class="banner">' + esc(t("paperLine")) + '</p><p class="quiet">' + esc(t("botsLead")) + "</p>"
       + '<div class="fields">' + field("g-search", "dirSearch", S.gq, "") + "</div>"
       + '<div class="modes">' + tags + "</div>"
       + (q || qnorm() || S.gTag ? '<p class="quiet">' + esc(t("hits")) + " " + mono(String(rows.length)) + "</p>" : "")
       + panel
-      + (cards ? '<div class="dirgrid">' + cards + "</div>" : '<p class="quiet">' + esc(t("empty")) + "</p>") + "</section>";
+      + (cards ? '<div class="dirgrid lux-grid">' + cards + "</div>" : '<p class="quiet">' + esc(t("empty")) + "</p>") + "</section>";
   }
   function viewIntegrations() {
     var saved = readArr("sr-room-venues").filter(function (x) { return typeof x === "string"; });
     var msg = S.integMsg ? '<p class="bad" role="alert">' + esc(t(S.integMsg)) + "</p>" : "";
     var cards = VENUES.map(function (id) {
       var on = saved.indexOf(id) !== -1;
-      return '<button type="button" class="dircard" data-venue="' + id + '" aria-pressed="' + (on ? "true" : "false") + '"><strong>' + esc(t("venue." + id)) + '</strong><span class="quiet">' + esc(t(on ? "integOn" : "integOff")) + "</span></button>";
+      return '<button type="button" class="dircard lux-card" data-venue="' + id + '" aria-pressed="' + (on ? "true" : "false") + '"><strong>' + esc(t("venue." + id)) + '</strong><span class="quiet">' + esc(t(on ? "integOn" : "integOff")) + "</span></button>";
     }).join("");
-    return '<section class="block"><h1>' + esc(t("integTitle")) + '</h1><p class="quiet">' + esc(t("integLead")) + "</p>" + msg + '<div class="dirgrid">' + cards + "</div></section>";
+    return '<section class="block"><h1>' + esc(t("integTitle")) + '</h1><p class="quiet">' + esc(t("integLead")) + "</p>" + msg + '<div class="dirgrid lux-grid">' + cards + "</div></section>";
   }
   function explain(titleKey, bodyKey, view) {
     var go = '<div class="rowacts"><button type="button" class="ghost" data-view="' + view + '">' + esc(t("nav." + view)) + "</button></div>";
-    return '<div class="panel"><h2>' + esc(t(titleKey)) + "</h2><p>" + esc(t(bodyKey)) + "</p>" + go + "</div>";
+    return '<div class="panel lux-card"><h2>' + esc(t(titleKey)) + "</h2><p>" + esc(t(bodyKey)) + "</p>" + go + "</div>";
   }
   function viewResources() {
     return '<section class="block"><h1>' + esc(t("resTitle")) + '</h1><p class="quiet">' + esc(t("resLead")) + "</p>"
@@ -156,15 +156,15 @@
     }).join("");
     var sums = Object.keys(report).map(function (a) {
       var box = report[a];
-      return '<div class="panel"><h2>' + mono(a) + '</h2><dl class="stats">' + stat("taxRealized", box.realized) + '<div class="stat"><dt>' + esc(t("taxRemain")) + "</dt><dd>" + mono(fmt(box.remain)) + "</dd></div></dl></div>";
+      return '<div class="panel lux-card"><h2>' + mono(a) + '</h2><dl class="stats">' + stat("taxRealized", box.realized) + '<div class="stat"><dt>' + esc(t("taxRemain")) + "</dt><dd>" + mono(fmt(box.remain)) + "</dd></div></dl></div>";
     }).join("");
     return '<section class="block"><h1>' + esc(t("acctTitle")) + '</h1><p class="banner">' + esc(t("acctLead")) + "</p>"
-      + (rows ? '<div class="tape-wrap"><table><thead><tr><th>' + esc(t("taxDate")) + "</th><th>" + esc(t("taxWallet")) + "</th><th>" + esc(t("taxAsset")) + "</th><th>" + esc(t("taxSide")) + "</th><th>" + esc(t("taxQty")) + "</th><th>" + esc(t("taxPrice")) + "</th></tr></thead><tbody>" + rows + "</tbody></table></div>" + sums : '<p class="quiet">' + esc(t("taxEmpty")) + "</p>")
+      + (rows ? '<div class="tape-wrap lux-table-wrap"><table><thead><tr><th>' + esc(t("taxDate")) + "</th><th>" + esc(t("taxWallet")) + "</th><th>" + esc(t("taxAsset")) + "</th><th>" + esc(t("taxSide")) + "</th><th>" + esc(t("taxQty")) + "</th><th>" + esc(t("taxPrice")) + "</th></tr></thead><tbody>" + rows + "</tbody></table></div>" + sums : '<p class="quiet">' + esc(t("taxEmpty")) + "</p>")
       + '<div class="rowacts"><button type="button" class="ghost" data-view="tax">' + esc(t("nav.tax")) + "</button></div></section>";
   }
   function exampleCards(rows) {
-    return '<div class="dirgrid">' + rows.map(function (r) {
-      return '<article class="dircard"><div class="cardtop"><h3>' + esc(t(r[0])) + '</h3><span class="pill">' + esc(t("exampleTag")) + '</span></div><p class="quiet">' + esc(t(r[1])) + "</p>" + (r[2] ? '<p>' + esc(t("exampleFig")) + " " + mono(r[2]) + "</p>" : "") + "</article>";
+    return '<div class="dirgrid lux-grid">' + rows.map(function (r) {
+      return '<article class="dircard lux-card"><div class="cardtop"><h3>' + esc(t(r[0])) + '</h3><span class="pill">' + esc(t("exampleTag")) + '</span></div><p class="quiet">' + esc(t(r[1])) + "</p>" + (r[2] ? '<p>' + esc(t("exampleFig")) + " " + mono(r[2]) + "</p>" : "") + "</article>";
     }).join("") + "</div>";
   }
   function viewEarn() {
@@ -179,7 +179,7 @@
   function viewAi() {
     var saved = lsGet("sr-room-ai") || "";
     var msg = S.aiMsg ? '<p role="status">' + esc(t(S.aiMsg)) + "</p>" : "";
-    var shown = saved ? '<div class="panel"><h2>' + esc(t("aiSavedTitle")) + '</h2><p class="isolate">' + esc(saved) + "</p></div>" : '<p class="quiet">' + esc(t("aiEmpty")) + "</p>";
+    var shown = saved ? '<div class="panel lux-card"><h2>' + esc(t("aiSavedTitle")) + '</h2><p class="isolate">' + esc(saved) + "</p></div>" : '<p class="quiet">' + esc(t("aiEmpty")) + "</p>";
     return '<section class="block"><h1>' + esc(t("aiTitle")) + '</h1><p class="banner">' + esc(t("aiLead")) + "</p>"
       + '<div class="fields">' + field("ai-note", "aiNote", S.aiText, "") + "</div>" + msg
       + '<div class="rowacts"><button type="button" class="solid" id="ai-save">' + esc(t("aiSave")) + "</button></div>" + shown + "</section>";
@@ -189,9 +189,9 @@
     var msg = S.priceMsg ? '<p role="status">' + esc(t(S.priceMsg)) + "</p>" : "";
     var cards = PLANS.map(function (p) {
       var on = picked === p.id ? ' aria-pressed="true"' : ' aria-pressed="false"';
-      return '<article class="dircard"><div class="cardtop"><h3>' + esc(t(p.name)) + '</h3><span class="pill">' + esc(t("exampleTag")) + "</span></div><p>" + mono(p.price) + " " + esc(t("perMonth")) + '</p><p class="quiet">' + esc(t(p.note)) + '</p><button type="button" class="ghost" data-price="' + p.id + '"' + on + ">" + esc(t("priceSave")) + "</button></article>";
+      return '<article class="dircard lux-card"><div class="cardtop"><h3>' + esc(t(p.name)) + '</h3><span class="pill">' + esc(t("exampleTag")) + "</span></div><p>" + mono(p.price) + " " + esc(t("perMonth")) + '</p><p class="quiet">' + esc(t(p.note)) + '</p><button type="button" class="ghost" data-price="' + p.id + '"' + on + ">" + esc(t("priceSave")) + "</button></article>";
     }).join("");
-    return '<section class="block"><h1>' + esc(t("priceTitle")) + '</h1><p class="quiet">' + esc(t("priceLead")) + '</p><p class="banner">' + esc(t("priceNone")) + "</p>" + msg + '<div class="dirgrid">' + cards + "</div></section>";
+    return '<section class="block"><h1>' + esc(t("priceTitle")) + '</h1><p class="quiet">' + esc(t("priceLead")) + '</p><p class="banner">' + esc(t("priceNone")) + "</p>" + msg + '<div class="dirgrid lux-grid">' + cards + "</div></section>";
   }
   function viewMarketplace() {
     var rows = readArr("sr-room-strategies").filter(function (r) { return r && typeof r.name === "string"; });
@@ -199,17 +199,17 @@
       return '<li><strong class="isolate">' + esc(r.name) + '</strong><div class="quiet isolate">' + esc(r.note || "") + '</div><button type="button" class="ghost" data-remove-strategy="' + esc(r.id) + '">' + esc(t("remove")) + "</button></li>";
     }).join("");
     var market = MARKET.map(function (id) {
-      return '<button type="button" class="dircard" data-market="' + id + '"><strong>' + esc(t("m." + id)) + '</strong><span class="quiet">' + esc(t("mLead." + id)) + '</span><span class="pill">' + esc(t("exampleTag")) + "</span></button>";
+      return '<button type="button" class="dircard lux-card" data-market="' + id + '"><strong>' + esc(t("m." + id)) + '</strong><span class="quiet">' + esc(t("mLead." + id)) + '</span><span class="pill">' + esc(t("exampleTag")) + "</span></button>";
     }).join("");
     var msg = S.hMsg ? '<p class="bad" role="alert">' + esc(t(S.hMsg)) + "</p>" : "";
-    return '<section class="block"><h1>' + esc(t("marketTitle2")) + '</h1><p class="banner">' + esc(t("paperLine")) + '</p><p class="quiet">' + esc(t("marketLead2")) + '</p><div class="dirgrid">' + market + "</div>"
+    return '<section class="block"><h1>' + esc(t("marketTitle2")) + '</h1><p class="banner">' + esc(t("paperLine")) + '</p><p class="quiet">' + esc(t("marketLead2")) + '</p><div class="dirgrid lux-grid">' + market + "</div>"
       + "<h2>" + esc(t("strategyTitle")) + "</h2>" + '<div class="fields">' + field("h-name", "strategyName", S.hName, "") + field("h-note", "strategyNote", S.hNote, "") + "</div>"
       + msg + '<div class="rowacts"><button type="button" class="solid" id="strategy-add">' + esc(t("strategyAdd")) + "</button></div>"
       + (rows.length ? '<ul class="nodes">' + list + "</ul>" : '<p class="quiet">' + esc(t("strategyEmpty")) + "</p>") + "</section>";
   }
   function linkGrid(pairs) {
-    return '<div class="dirgrid">' + pairs.map(function (it) {
-      return '<button type="button" class="dircard" data-view="' + it[0] + '"><strong>' + esc(t(it[1])) + '</strong><span class="quiet">' + esc(t(it[2])) + "</span></button>";
+    return '<div class="dirgrid lux-grid">' + pairs.map(function (it) {
+      return '<button type="button" class="dircard lux-card" data-view="' + it[0] + '"><strong>' + esc(t(it[1])) + '</strong><span class="quiet">' + esc(t(it[2])) + "</span></button>";
     }).join("") + "</div>";
   }
   function viewFeatures() {
