@@ -67,7 +67,7 @@ Object.assign(globalThis.SR_DICT.hi.strings, {
       },
       "srcGroup": "स्रोत",
       "src": {
-        "desk": "आर्खम मेज़",
+        "desk": "उदाहरण मेज़",
         "tax": "कर",
         "gainium": "गेनियम",
         "commas": "3कॉमास",
